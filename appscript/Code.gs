@@ -59,6 +59,12 @@ function doGet(e) {
     var terverifikasi = data.filter(function (d) { return d.status === "Terverifikasi"; }).length;
     return jsonOutput({ total_pendaftar: data.length, terverifikasi: terverifikasi });
   }
+  if (action === "list_biaya") {
+    return jsonOutput(sheetToObjects(sheet("BiayaMasuk")).reverse());
+  }
+  if (action === "list_persyaratan") {
+    return jsonOutput(sheetToObjects(sheet("Persyaratan")).reverse());
+  }
 
   return ContentService.createTextOutput("Script aktif. Gunakan parameter ?action=").setMimeType(ContentService.MimeType.TEXT);
 }
@@ -91,6 +97,24 @@ function doPost(e) {
   }
   if (action === "delete_pengumuman") {
     return deleteRow("Pengumuman", body.id);
+  }
+  if (action === "add_biaya") {
+    return addBiaya(body);
+  }
+  if (action === "update_biaya") {
+    return updateBiaya(body);
+  }
+  if (action === "delete_biaya") {
+    return deleteRow("BiayaMasuk", body.id);
+  }
+  if (action === "add_persyaratan") {
+    return addPersyaratan(body);
+  }
+  if (action === "update_persyaratan") {
+    return updatePersyaratan(body);
+  }
+  if (action === "delete_persyaratan") {
+    return deleteRow("Persyaratan", body.id);
   }
 
   return jsonOutput({ result: "error", message: "Aksi tidak dikenali" });
@@ -154,5 +178,55 @@ function deleteRow(sheetName, id) {
   var row = findRowById(sh, id);
   if (row === -1) return jsonOutput({ result: "error", message: "Data tidak ditemukan" });
   sh.deleteRow(row);
+  return jsonOutput({ result: "success" });
+}
+
+/* ============ RINCIAN BIAYA MASUK ============ */
+function addBiaya(body) {
+  var sh = sheet("BiayaMasuk");
+  if (sh.getLastRow() === 0) {
+    sh.appendRow(["id", "kelas", "gelombang", "periode", "item_json", "total", "biaya_bulanan"]);
+  }
+  var id = Utilities.getUuid();
+  sh.appendRow([id, body.kelas, body.gelombang, body.periode || "", body.item_json || "[]", body.total || 0, body.biaya_bulanan || ""]);
+  return jsonOutput({ result: "success", id: id });
+}
+
+function updateBiaya(body) {
+  var sh = sheet("BiayaMasuk");
+  var row = findRowById(sh, body.id);
+  if (row === -1) return jsonOutput({ result: "error", message: "Data tidak ditemukan" });
+  var headers = sh.getDataRange().getValues()[0];
+  var values = [body.kelas, body.gelombang, body.periode || "", body.item_json || "[]", body.total || 0, body.biaya_bulanan || ""];
+  var cols = ["kelas", "gelombang", "periode", "item_json", "total", "biaya_bulanan"];
+  cols.forEach(function (col, i) {
+    var colIndex = headers.indexOf(col) + 1;
+    sh.getRange(row, colIndex).setValue(values[i]);
+  });
+  return jsonOutput({ result: "success" });
+}
+
+/* ============ PERSYARATAN PENDAFTARAN ============ */
+function addPersyaratan(body) {
+  var sh = sheet("Persyaratan");
+  if (sh.getLastRow() === 0) {
+    sh.appendRow(["id", "kategori", "jenis", "daftar_item"]);
+  }
+  var id = Utilities.getUuid();
+  sh.appendRow([id, body.kategori, body.jenis || "Persyaratan", body.daftar_item || ""]);
+  return jsonOutput({ result: "success", id: id });
+}
+
+function updatePersyaratan(body) {
+  var sh = sheet("Persyaratan");
+  var row = findRowById(sh, body.id);
+  if (row === -1) return jsonOutput({ result: "error", message: "Data tidak ditemukan" });
+  var headers = sh.getDataRange().getValues()[0];
+  var values = [body.kategori, body.jenis || "Persyaratan", body.daftar_item || ""];
+  var cols = ["kategori", "jenis", "daftar_item"];
+  cols.forEach(function (col, i) {
+    var colIndex = headers.indexOf(col) + 1;
+    sh.getRange(row, colIndex).setValue(values[i]);
+  });
   return jsonOutput({ result: "success" });
 }

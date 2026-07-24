@@ -8,12 +8,35 @@
     <meta name="robots" content="noindex, nofollow">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <style>
-        body { background: var(--section-bg); }
-        .admin-card { background: var(--card); border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,.08); }
-        .nav-tabs .nav-link { color: var(--text); }
+        body {
+            background: var(--section-bg);
+        }
+
+        .admin-card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .08);
+        }
+
+        .nav-tabs .nav-link {
+            color: var(--text);
+        }
+
+        .item-biaya-row input {
+            max-width: 100%;
+        }
+
+        .total-biaya-box {
+            background: #f1fbf6;
+            border: 1px dashed #198754;
+            border-radius: 10px;
+            padding: .75rem 1rem;
+        }
     </style>
 </head>
 
@@ -34,13 +57,15 @@
 
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h3 class="fw-bold text-success mb-0"><i class="bi bi-speedometer2"></i> Admin Panel MI Ulul Fikri</h3>
-            <a href="index.html" class="btn btn-outline-secondary btn-sm"><i class="bi bi-box-arrow-left"></i> Kembali ke Web</a>
+            <a href="index.html" class="btn btn-outline-secondary btn-sm"><i class="bi bi-box-arrow-left"></i> Kembali
+                ke Web</a>
         </div>
 
         <ul class="nav nav-tabs mb-4" id="adminTabs">
             <li class="nav-item"><button class="nav-link active" data-tab="tabPpdb">Verifikasi PPDB</button></li>
             <li class="nav-item"><button class="nav-link" data-tab="tabBerita">Kelola Berita</button></li>
             <li class="nav-item"><button class="nav-link" data-tab="tabPengumuman">Kelola Pengumuman</button></li>
+            <li class="nav-item"><button class="nav-link" data-tab="tabPengaturan">Pengaturan Pendaftaran</button></li>
         </ul>
 
         <!-- ===== TAB: VERIFIKASI PPDB ===== -->
@@ -48,7 +73,8 @@
             <div class="admin-card">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold mb-0">Daftar Pendaftar PPDB</h5>
-                    <button class="btn btn-sm btn-outline-success" onclick="muatPpdb()"><i class="bi bi-arrow-clockwise"></i> Muat Ulang</button>
+                    <button class="btn btn-sm btn-outline-success" onclick="muatPpdb()"><i
+                            class="bi bi-arrow-clockwise"></i> Muat Ulang</button>
                 </div>
                 <div class="table-responsive">
                     <table class="table align-middle">
@@ -63,7 +89,9 @@
                             </tr>
                         </thead>
                         <tbody id="ppdbTableBody">
-                            <tr><td colspan="6" class="text-center text-muted">Memuat data...</td></tr>
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">Memuat data...</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -89,17 +117,20 @@
                             <textarea name="isi" class="form-control" rows="3" required></textarea>
                         </div>
                         <div class="col-12">
-                            <label class="form-label">URL Gambar (opsional, upload gambar ke Google Drive/Imgur dulu lalu tempel link-nya)</label>
+                            <label class="form-label">URL Gambar (opsional, upload gambar ke Google Drive/Imgur dulu
+                                lalu tempel link-nya)</label>
                             <input type="url" name="gambar_url" class="form-control" placeholder="https://...">
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-success mt-3"><i class="bi bi-plus-circle"></i> Tambah Berita</button>
+                    <button type="submit" class="btn btn-success mt-3"><i class="bi bi-plus-circle"></i> Tambah
+                        Berita</button>
                 </form>
             </div>
             <div class="admin-card">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold mb-0">Daftar Berita</h5>
-                    <button class="btn btn-sm btn-outline-success" onclick="muatBerita()"><i class="bi bi-arrow-clockwise"></i> Muat Ulang</button>
+                    <button class="btn btn-sm btn-outline-success" onclick="muatBerita()"><i
+                            class="bi bi-arrow-clockwise"></i> Muat Ulang</button>
                 </div>
                 <div id="beritaList" class="text-muted">Memuat data...</div>
             </div>
@@ -124,15 +155,135 @@
                             <textarea name="isi" class="form-control" rows="3" required></textarea>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-success mt-3"><i class="bi bi-plus-circle"></i> Tambah Pengumuman</button>
+                    <button type="submit" class="btn btn-success mt-3"><i class="bi bi-plus-circle"></i> Tambah
+                        Pengumuman</button>
                 </form>
             </div>
             <div class="admin-card">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold mb-0">Daftar Pengumuman</h5>
-                    <button class="btn btn-sm btn-outline-success" onclick="muatPengumuman()"><i class="bi bi-arrow-clockwise"></i> Muat Ulang</button>
+                    <button class="btn btn-sm btn-outline-success" onclick="muatPengumuman()"><i
+                            class="bi bi-arrow-clockwise"></i> Muat Ulang</button>
                 </div>
                 <div id="pengumumanList" class="text-muted">Memuat data...</div>
+            </div>
+        </div>
+
+        <!-- ===== TAB: PENGATURAN PENDAFTARAN ===== -->
+        <div id="tabPengaturan" class="admin-tab" style="display:none;">
+
+            <!-- --- RINCIAN BIAYA MASUK --- -->
+            <div class="admin-card mb-4">
+                <h5 class="fw-bold mb-1" id="formBiayaTitle">Tambah Rincian Biaya Masuk</h5>
+                <p class="text-muted small mb-3">Buat satu paket biaya untuk tiap Kelas + Gelombang (contoh: Intensif
+                    Gelombang I, Intensif Gelombang II, Reguler Gelombang I, Reguler Gelombang II).</p>
+                <form id="formBiaya">
+                    <input type="hidden" name="id" id="biayaEditId">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Kelas</label>
+                            <select name="kelas" class="form-select" required>
+                                <option value="">-- Pilih Kelas --</option>
+                                <option value="Intensif">Intensif</option>
+                                <option value="Reguler">Reguler</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Gelombang</label>
+                            <select name="gelombang" class="form-select" required>
+                                <option value="">-- Pilih Gelombang --</option>
+                                <option value="Gelombang I">Gelombang I</option>
+                                <option value="Gelombang II">Gelombang II</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Periode (opsional, contoh: Januari - Maret)</label>
+                            <input type="text" name="periode" class="form-control" placeholder="Januari - Maret">
+                        </div>
+                    </div>
+
+                    <hr class="my-3">
+                    <label class="form-label fw-semibold">Rincian Item Biaya</label>
+                    <div id="biayaItemRows"></div>
+                    <button type="button" class="btn btn-sm btn-outline-success mt-1" id="btnTambahItemBiaya">
+                        <i class="bi bi-plus-lg"></i> Tambah Item
+                    </button>
+
+                    <div class="total-biaya-box mt-3 d-flex justify-content-between align-items-center">
+                        <span class="fw-semibold">Total Biaya Masuk</span>
+                        <span class="fw-bold text-success fs-5" id="totalBiayaPreview">Rp 0</span>
+                    </div>
+
+                    <div class="row g-3 mt-1">
+                        <div class="col-12">
+                            <label class="form-label">Biaya Rutin Bulanan (opsional, contoh: SPP
+                                Rp130.000/Bulan)</label>
+                            <input type="text" name="biaya_bulanan" class="form-control"
+                                placeholder="SPP Rp130.000/Bulan">
+                        </div>
+                    </div>
+
+                    <div class="mt-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> <span
+                                id="btnBiayaLabel">Simpan Paket Biaya</span></button>
+                        <button type="button" class="btn btn-outline-secondary" id="btnBatalEditBiaya"
+                            style="display:none">Batal Edit</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="admin-card mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">Daftar Paket Rincian Biaya</h5>
+                    <button class="btn btn-sm btn-outline-success" onclick="muatBiaya()"><i
+                            class="bi bi-arrow-clockwise"></i> Muat Ulang</button>
+                </div>
+                <div id="biayaList" class="text-muted">Memuat data...</div>
+            </div>
+
+            <!-- --- PERSYARATAN PENDAFTARAN --- -->
+            <div class="admin-card mb-4">
+                <h5 class="fw-bold mb-1">Tambah Persyaratan Pendaftaran</h5>
+                <p class="text-muted small mb-3">Buat per kategori, misalnya "Siswa Baru" atau "Siswa Pindahan".
+                    Satu poin persyaratan/perlengkapan ditulis per baris.</p>
+                <form id="formPersyaratan">
+                    <input type="hidden" name="id" id="persyaratanEditId">
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label class="form-label">Kategori</label>
+                            <input type="text" name="kategori" class="form-control" placeholder="Contoh: Siswa Baru"
+                                required>
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label">Jenis Daftar</label>
+                            <select name="jenis" class="form-select">
+                                <option value="Persyaratan">Persyaratan Masuk</option>
+                                <option value="Perlengkapan">Perlengkapan yang Harus Disiapkan</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Daftar Poin (satu poin per baris)</label>
+                            <textarea name="daftar_item" class="form-control" rows="5"
+                                placeholder="Mengisi formulir pendaftaran&#10;Fotokopi akte kelahiran 3 lembar&#10;Fotokopi KK 3 lembar"
+                                required></textarea>
+                        </div>
+                    </div>
+                    <div class="mt-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> <span
+                                id="btnPersyaratanLabel">Simpan</span></button>
+                        <button type="button" class="btn btn-outline-secondary" id="btnBatalEditPersyaratan"
+                            style="display:none">Batal Edit</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="admin-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">Daftar Persyaratan &amp; Perlengkapan</h5>
+                    <button class="btn btn-sm btn-outline-success" onclick="muatPersyaratan()"><i
+                            class="bi bi-arrow-clockwise"></i> Muat Ulang</button>
+                </div>
+                <div id="persyaratanList" class="text-muted">Memuat data...</div>
             </div>
         </div>
 

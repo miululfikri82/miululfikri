@@ -4,11 +4,208 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-     <title>Ekstrakurikuler | MI Ulul Fikri Tajurhalang Bogor</title>
+    <title>Ekstrakurikuler | MI Ulul Fikri Tajurhalang Bogor</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* ==== Perbaikan tampilan khusus halaman Ekstrakurikuler ==== */
+        /* Tidak mengubah tema global style.css, hanya menambah & merapikan komponen di halaman ini */
+
+        .ekskul-hero {
+            background: linear-gradient(135deg, rgba(25, 135, 84, .07), rgba(255, 193, 7, .10));
+            border-radius: 24px;
+            padding: 3rem 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .ekskul-hero .badge {
+            font-weight: 600;
+            letter-spacing: .04em;
+            padding: .5rem 1rem;
+            border-radius: 50px;
+        }
+
+        .ekskul-hero h2 {
+            font-size: clamp(1.75rem, 3vw, 2.5rem);
+        }
+
+        .section-label {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            font-size: .8rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: #198754;
+            margin-bottom: .5rem;
+        }
+
+        .section-label::before {
+            content: "";
+            width: 28px;
+            height: 3px;
+            background: #ffc107;
+            border-radius: 2px;
+            display: inline-block;
+        }
+
+        /* Kartu program ekskul */
+        .ekskul-card {
+            position: relative;
+            height: 100%;
+            background: #fff !important;
+            color: #212529;
+            border: 1px solid rgba(0, 0, 0, .06);
+            border-radius: 18px;
+            padding: 1.75rem 1.5rem;
+            transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+            overflow: hidden;
+        }
+
+        .ekskul-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 5px;
+            background: var(--ekskul-accent, #198754);
+        }
+
+        .ekskul-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 1.25rem 2.5rem rgba(0, 0, 0, .09);
+            border-color: transparent;
+        }
+
+        .ekskul-card .ekskul-icon {
+            width: 58px;
+            height: 58px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            margin-bottom: 1.1rem;
+            background: color-mix(in srgb, var(--ekskul-accent, #198754) 12%, white);
+            color: var(--ekskul-accent, #198754);
+        }
+
+        .ekskul-card h4 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1c1c1c !important;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: .5rem;
+            margin-bottom: .6rem;
+        }
+
+        .ekskul-card p {
+            font-size: .92rem;
+            color: #6c757d !important;
+            margin: 0;
+        }
+
+        .badge-wajib {
+            background: #198754;
+            color: #fff;
+            font-size: .65rem;
+            font-weight: 600;
+            padding: .3rem .55rem;
+            border-radius: 50px;
+            letter-spacing: .03em;
+        }
+
+        /* Prestasi */
+        .prestasi-wrap {
+            background: #14532d;
+            background: linear-gradient(160deg, #14532d 0%, #198754 100%);
+            border-radius: 24px;
+            padding: 2.75rem 2rem;
+            color: #fff;
+            margin-top: 4rem;
+        }
+
+        .prestasi-wrap .section-label {
+            color: #ffe08a;
+        }
+
+        .prestasi-wrap .section-label::before {
+            background: #ffe08a;
+        }
+
+        .prestasi-wrap h3 {
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .prestasi-wrap p.lead {
+            color: rgba(255, 255, 255, .75);
+            font-size: .95rem;
+        }
+
+        .prestasi-item {
+            background: rgba(255, 255, 255, .07);
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 16px;
+            padding: 1.5rem;
+            height: 100%;
+            backdrop-filter: blur(2px);
+            transition: background .25s ease;
+        }
+
+        .prestasi-item:hover {
+            background: rgba(255, 255, 255, .13);
+        }
+
+        .prestasi-item .prestasi-top {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            margin-bottom: .85rem;
+        }
+
+        .prestasi-item .trophy {
+            width: 42px;
+            height: 42px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            background: #ffc107;
+            color: #14532d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .prestasi-item h5 {
+            margin: 0;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .prestasi-item p {
+            font-size: .88rem;
+            color: rgba(255, 255, 255, .85);
+            margin: 0;
+        }
+
+        @media (max-width: 767px) {
+            .ekskul-hero {
+                padding: 2rem 1.25rem;
+                border-radius: 18px;
+            }
+
+            .prestasi-wrap {
+                border-radius: 18px;
+                padding: 2rem 1.25rem;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -58,65 +255,105 @@
     <section class="py-5">
         <div class="container">
 
-            <div class="text-center mb-5">
-                <span class="badge bg-warning text-dark mb-2">Ekstrakurikuler</span>
+            <div class="ekskul-hero text-center">
+                <span class="badge bg-warning text-dark mb-2"><i class="bi bi-stars me-1"></i>Ekstrakurikuler</span>
                 <h2 class="fw-bold">Program Ekstrakurikuler</h2>
-                <p class="text-muted">Kegiatan ekstrakurikuler dilaksanakan setiap hari Sabtu untuk mengembangkan bakat dan minat peserta didik.</p>
+                <p class="text-muted mb-0">Kegiatan ekstrakurikuler dilaksanakan setiap hari Sabtu untuk
+                    mengembangkan bakat dan minat peserta didik.</p>
             </div>
 
-            <div class="row g-4 mb-4">
+            <span class="section-label">Pilihan Program</span>
+
+            <div class="row g-4 mb-3">
                 <div class="col-lg-4 col-md-6">
-                    <div class="feature-card h-100">
-                        <div class="feature-icon bg-success-subtle"><i class="bi bi-flag-fill text-success"></i></div>
-                        <h4>Pramuka <span class="badge bg-success">Wajib</span></h4>
-                        <p>Melatih kemandirian, kerja sama, dan jiwa kepemimpinan siswa. Wajib diikuti seluruh peserta didik.</p>
+                    <div class="ekskul-card" style="--ekskul-accent:#198754">
+                        <div class="ekskul-icon"><i class="bi bi-flag-fill"></i></div>
+                        <h4>Pramuka <span class="badge-wajib">WAJIB</span></h4>
+                        <p>Melatih kemandirian, kerja sama, dan jiwa kepemimpinan siswa. Wajib diikuti seluruh
+                            peserta didik.</p>
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-6">
-                    <div class="feature-card h-100">
-                        <div class="feature-icon bg-warning-subtle"><i class="bi bi-book-half text-warning"></i></div>
+                    <div class="ekskul-card" style="--ekskul-accent:#198754">
+                        <div class="ekskul-icon"><i class="bi bi-flag-fill"></i></div>
+                        <h4>Paskibra</h4>
+                        <p>Membentuk pribadi disiplin, tangguh, berjiwa nasionalis, dan bertanggung jawab melalui
+                            latihan baris-berbaris.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="ekskul-card" style="--ekskul-accent:#ffc107">
+                        <div class="ekskul-icon"><i class="bi bi-book-half"></i></div>
                         <h4>Tahfidz Al-Qur'an</h4>
                         <p>Pembinaan hafalan Al-Qur'an, dengan capaian Wisuda Tahfidz 1 Juz.</p>
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-6">
-                    <div class="feature-card h-100">
-                        <div class="feature-icon bg-primary-subtle"><i class="bi bi-calculator-fill text-primary"></i></div>
+                    <div class="ekskul-card" style="--ekskul-accent:#0d6efd">
+                        <div class="ekskul-icon"><i class="bi bi-calculator-fill"></i></div>
                         <h4>Calistung</h4>
                         <p>Penguatan kemampuan membaca, menulis, dan berhitung sejak dini.</p>
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-6">
-                    <div class="feature-card h-100">
-                        <div class="feature-icon bg-info-subtle"><i class="bi bi-palette-fill text-info"></i></div>
+                    <div class="ekskul-card" style="--ekskul-accent:#0dcaf0">
+                        <div class="ekskul-icon"><i class="bi bi-palette-fill"></i></div>
                         <h4>Melukis / Mewarnai</h4>
                         <p>Menyalurkan kreativitas dan bakat seni rupa peserta didik.</p>
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-6">
-                    <div class="feature-card h-100">
-                        <div class="feature-icon bg-danger-subtle"><i class="bi bi-dribbble text-danger"></i></div>
+                    <div class="ekskul-card" style="--ekskul-accent:#dc3545">
+                        <div class="ekskul-icon"><i class="bi bi-circle-fill" style="font-size:1.3rem"></i></div>
                         <h4>Futsal</h4>
-                        <p>Melatih kekompakan tim dan sportivitas. Tercatat meraih Juara 2 tingkat MI se-Kecamatan Tajurhalang.</p>
+                        <p>Melatih kekompakan tim dan sportivitas melalui latihan rutin dan pertandingan
+                            persahabatan.</p>
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-6">
-                    <div class="feature-card h-100">
-                        <div class="feature-icon bg-secondary-subtle"><i class="bi bi-lightning-fill text-secondary"></i></div>
+                    <div class="ekskul-card" style="--ekskul-accent:#6c757d">
+                        <div class="ekskul-icon"><i class="bi bi-lightning-fill"></i></div>
                         <h4>Taekwondo</h4>
                         <p>Melatih disiplin, ketangkasan, dan bela diri peserta didik.</p>
                     </div>
                 </div>
             </div>
 
-            <div class="row g-4">
-                <div class="col-12">
-                    <div class="prestasi-card">
-                        <div class="prestasi-icon"><i class="bi bi-trophy-fill"></i></div>
-                        <h4>Paskibra</h4>
-                        <p>Membentuk pribadi disiplin, tangguh, berjiwa nasionalis, dan bertanggung jawab
-                            melalui latihan baris-berbaris. Prestasi: <strong>Juara Harapan 2 LKBB (Lomba
-                            Ketangkasan Baris Berbaris) tingkat SD/sederajat se-Pulau Jawa (open)</strong>.</p>
+            <div class="prestasi-wrap">
+                <span class="section-label">Kebanggaan Kami</span>
+                <h3>Prestasi &amp; Pencapaian</h3>
+                <p class="lead mb-4">Buah dari latihan rutin setiap hari Sabtu, membawa nama sekolah harum di
+                    berbagai ajang.</p>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="prestasi-item">
+                            <div class="prestasi-top">
+                                <div class="trophy"><i class="bi bi-trophy-fill"></i></div>
+                                <h5>Paskibra</h5>
+                            </div>
+                            <p>Juara Harapan 2 LKBB (Lomba Ketangkasan Baris Berbaris) tingkat SD/sederajat
+                                se-Pulau Jawa (open).</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="prestasi-item">
+                            <div class="prestasi-top">
+                                <div class="trophy"><i class="bi bi-trophy-fill"></i></div>
+                                <h5>Pramuka</h5>
+                            </div>
+                            <p>Menjuarai berbagai lomba Pramuka tingkat se-Kecamatan Tajurhalang dan
+                                se-Jabodetabek.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="prestasi-item">
+                            <div class="prestasi-top">
+                                <div class="trophy"><i class="bi bi-trophy-fill"></i></div>
+                                <h5>Futsal</h5>
+                            </div>
+                            <p>Juara 2 Turnamen Futsal (Posmadib) tahun 2025.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -137,7 +374,8 @@
 
     <button id="backToTop" aria-label="Kembali ke atas"><i class="bi bi-chevron-up"></i></button>
 
-    <a href="https://wa.me/62895375689961?text=Assalamu'alaikum,%20saya%20ingin%20bertanya%20tentang%20MI%20Ulul%20Fikri." class="floating-wa" target="_blank" aria-label="Hubungi Kami via WhatsApp">
+    <a href="https://wa.me/62895375689961?text=Assalamu'alaikum,%20saya%20ingin%20bertanya%20tentang%20MI%20Ulul%20Fikri."
+        class="floating-wa" target="_blank" aria-label="Hubungi Kami via WhatsApp">
         <div class="wa-text">Hubungi Kami</div>
         <div class="wa-icon"><i class="bi bi-whatsapp"></i></div>
     </a>
