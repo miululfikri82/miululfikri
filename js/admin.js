@@ -3,7 +3,7 @@ ADMIN PANEL - MI ULUL FIKRI
 =========================================*/
 
 // GANTI URL & PASSWORD INI
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx6A_JrDbsjofxgEB6TQUfV0L5FPcpmV9YYs0JCzgRlkaYaeFXGFna40VSHIxuwdLp13g/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxjedZtAtzXnoxqAQ7y4KY8gKa5BjH3cfPMa_otQajEE02gKADm0poUIvA3R1Wol86sXw/exec";
 const ADMIN_PASSWORD = "admin1234";
 
 function cekPassword() {
