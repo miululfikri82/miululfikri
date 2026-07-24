@@ -4,7 +4,7 @@ ADMIN PANEL - MI ULUL FIKRI
 
 // GANTI URL & PASSWORD INI
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx6A_JrDbsjofxgEB6TQUfV0L5FPcpmV9YYs0JCzgRlkaYaeFXGFna40VSHIxuwdLp13g/exec";
-const ADMIN_PASSWORD = "GANTI_PASSWORD_INI";
+const ADMIN_PASSWORD = "admin1234";
 
 function cekPassword() {
     const input = document.getElementById("adminPassword").value;
