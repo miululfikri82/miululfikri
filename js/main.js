@@ -82,51 +82,37 @@ document.addEventListener("DOMContentLoaded", function () {
    TESTIMONI SLIDER
 ========================== */
 
-const testimonialSwiper = new Swiper(".testimonialSwiper", {
+if (typeof Swiper !== "undefined" && document.querySelector(".testimonialSwiper")) {
 
-    loop: true,
+    const testimonialSwiper = new Swiper(".testimonialSwiper", {
+        loop: true,
 
-    autoplay: {
-
-        delay: 4000,
-
-        disableOnInteraction: false,
-
-    },
-
-    spaceBetween: 30,
-
-    pagination: {
-
-        el: ".swiper-pagination",
-
-        clickable: true,
-
-    },
-
-    breakpoints: {
-
-        0: {
-
-            slidesPerView: 1
-
+        autoplay: {
+            delay: 4000,
+            disableOnInteraction: false,
         },
 
-        768: {
+        spaceBetween: 30,
 
-            slidesPerView: 2
-
+        pagination: {
+            el: ".swiper-pagination",
+            clickable: true,
         },
 
-        1200: {
-
-            slidesPerView: 3
-
+        breakpoints: {
+            0: {
+                slidesPerView: 1
+            },
+            768: {
+                slidesPerView: 2
+            },
+            1200: {
+                slidesPerView: 3
+            }
         }
+    });
 
-    }
-
-});
+}
 
 /*========================================
 BACK TO TOP
