@@ -41,6 +41,41 @@ function findRowById(sh, id) {
   return -1;
 }
 
+// Pastikan sheet punya semua kolom yang dibutuhkan. Kolom yang belum ada akan
+// ditambahkan di ujung kanan tanpa merusak kolom & data yang sudah ada.
+// Return array header terbaru (urutan sesuai kolom asli di sheet).
+function ensureColumns(sh, headers) {
+  if (sh.getLastRow() === 0) {
+    sh.appendRow(headers);
+    return headers.slice();
+  }
+  var currentHeaders = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  var toAdd = headers.filter(function (h) { return currentHeaders.indexOf(h) === -1; });
+  if (toAdd.length) {
+    sh.getRange(1, currentHeaders.length + 1, 1, toAdd.length).setValues([toAdd]);
+    currentHeaders = currentHeaders.concat(toAdd);
+  }
+  return currentHeaders;
+}
+
+// Simpan file bukti pembayaran (base64) ke Google Drive dan kembalikan URL-nya.
+// Jika tidak ada file (base64 kosong), kembalikan string kosong.
+function saveBuktiBayar(base64, filename, mime) {
+  if (!base64) return "";
+  try {
+    var folderName = "Bukti Pembayaran PPDB";
+    var folders = DriveApp.getFoldersByName(folderName);
+    var folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(folderName);
+    var bytes = Utilities.base64Decode(base64);
+    var blob = Utilities.newBlob(bytes, mime || "application/octet-stream", filename || ("bukti_bayar_" + new Date().getTime()));
+    var file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    return file.getUrl();
+  } catch (err) {
+    return "";
+  }
+}
+
 /* ================= doGet: untuk membaca data (publik & admin) ================= */
 function doGet(e) {
   var action = e.parameter.action || "";
@@ -78,10 +113,13 @@ function doPost(e) {
   if (isJson) {
     try { body = JSON.parse(e.postData.contents); } catch (err) { body = {}; }
   }
-  var action = body.action || p.action || "submit_ppdb";
+  // Kalau data dikirim sebagai JSON (fetch dari ppdb.js/admin.js), pakai body.
+  // Kalau dikirim sebagai form submit klasik, pakai e.parameter.
+  var data = (isJson && Object.keys(body).length) ? body : p;
+  var action = data.action || "submit_ppdb";
 
   if (action === "submit_ppdb") {
-    return submitPpdb(p);
+    return submitPpdb(data);
   }
   if (action === "verify_ppdb") {
     return verifyPpdb(body.id);
@@ -122,26 +160,42 @@ function doPost(e) {
 
 function submitPpdb(p) {
   var sh = sheet("Pendaftaran");
-  if (sh.getLastRow() === 0) {
-    sh.appendRow(["id", "timestamp", "tahun_ajaran", "kelas_pilihan", "gelombang", "nama", "panggilan", "jk",
-      "tempat_lahir", "tanggal_lahir", "anak_ke", "saudara_kandung_jml", "saudara_tiri_jml", "tinggal_dengan",
-      "alamat", "rt", "rw", "desa_kec", "ayah_nama", "ayah_ttl", "ayah_pendidikan", "ayah_pekerjaan",
-      "ayah_penghasilan", "ayah_alamat", "ayah_notelp", "ibu_nama", "ibu_ttl", "ibu_pendidikan", "ibu_pekerjaan",
-      "ibu_penghasilan", "ibu_alamat", "ibu_notelp", "wali_nama", "wali_ttl", "wali_pendidikan", "wali_pekerjaan",
-      "wali_alamat", "wali_notelp", "saudara_kandung_data", "tinggal_bersama", "status_pernikahan",
-      "darurat_nama", "darurat_hubungan", "darurat_alamat", "darurat_notelp", "status"]);
-  }
+  var headers = ["id", "timestamp", "tahun_ajaran", "kelas_pilihan", "gelombang", "nama", "panggilan", "jk",
+    "tempat_lahir", "tanggal_lahir", "anak_ke", "saudara_kandung_jml", "saudara_tiri_jml", "tinggal_dengan",
+    "alamat", "rt", "rw", "desa_kec", "ayah_nama", "ayah_ttl", "ayah_pendidikan", "ayah_pekerjaan",
+    "ayah_penghasilan", "ayah_alamat", "ayah_notelp", "ibu_nama", "ibu_ttl", "ibu_pendidikan", "ibu_pekerjaan",
+    "ibu_penghasilan", "ibu_alamat", "ibu_notelp", "wali_nama", "wali_ttl", "wali_pendidikan", "wali_pekerjaan",
+    "wali_alamat", "wali_notelp", "saudara_kandung_data", "tinggal_bersama", "status_pernikahan",
+    "darurat_nama", "darurat_hubungan", "darurat_alamat", "darurat_notelp", "status", "bukti_bayar_url"];
+
+  // Tambahkan kolom yang belum ada (mis. bukti_bayar_url pada sheet lama) tanpa
+  // mengubah urutan/data kolom yang sudah ada.
+  var currentHeaders = ensureColumns(sh, headers);
+
   var id = Utilities.getUuid();
-  sh.appendRow([
-    id, new Date(), p.tahun_ajaran, p.kelas_pilihan, p.gelombang, p.nama, p.panggilan, p.jk,
-    p.tempat_lahir, p.tanggal_lahir, p.anak_ke, p.saudara_kandung_jml, p.saudara_tiri_jml, p.tinggal_dengan,
-    p.alamat, p.rt, p.rw, p.desa_kec, p.ayah_nama, p.ayah_ttl, p.ayah_pendidikan, p.ayah_pekerjaan,
-    p.ayah_penghasilan, p.ayah_alamat, p.ayah_notelp, p.ibu_nama, p.ibu_ttl, p.ibu_pendidikan, p.ibu_pekerjaan,
-    p.ibu_penghasilan, p.ibu_alamat, p.ibu_notelp, p.wali_nama, p.wali_ttl, p.wali_pendidikan, p.wali_pekerjaan,
-    p.wali_alamat, p.wali_notelp, p.saudara_kandung_data, p.tinggal_bersama, p.status_pernikahan,
-    p.darurat_nama, p.darurat_hubungan, p.darurat_alamat, p.darurat_notelp, "Menunggu Verifikasi"
-  ]);
-  return jsonOutput({ result: "success", id: id });
+  var buktiUrl = saveBuktiBayar(p.bukti_base64, p.bukti_nama, p.bukti_mime);
+
+  var rowData = {
+    id: id, timestamp: new Date(), tahun_ajaran: p.tahun_ajaran, kelas_pilihan: p.kelas_pilihan,
+    gelombang: p.gelombang, nama: p.nama, panggilan: p.panggilan, jk: p.jk,
+    tempat_lahir: p.tempat_lahir, tanggal_lahir: p.tanggal_lahir, anak_ke: p.anak_ke,
+    saudara_kandung_jml: p.saudara_kandung_jml, saudara_tiri_jml: p.saudara_tiri_jml,
+    tinggal_dengan: p.tinggal_dengan, alamat: p.alamat, rt: p.rt, rw: p.rw, desa_kec: p.desa_kec,
+    ayah_nama: p.ayah_nama, ayah_ttl: p.ayah_ttl, ayah_pendidikan: p.ayah_pendidikan,
+    ayah_pekerjaan: p.ayah_pekerjaan, ayah_penghasilan: p.ayah_penghasilan, ayah_alamat: p.ayah_alamat,
+    ayah_notelp: p.ayah_notelp, ibu_nama: p.ibu_nama, ibu_ttl: p.ibu_ttl, ibu_pendidikan: p.ibu_pendidikan,
+    ibu_pekerjaan: p.ibu_pekerjaan, ibu_penghasilan: p.ibu_penghasilan, ibu_alamat: p.ibu_alamat,
+    ibu_notelp: p.ibu_notelp, wali_nama: p.wali_nama, wali_ttl: p.wali_ttl, wali_pendidikan: p.wali_pendidikan,
+    wali_pekerjaan: p.wali_pekerjaan, wali_alamat: p.wali_alamat, wali_notelp: p.wali_notelp,
+    saudara_kandung_data: p.saudara_kandung_data, tinggal_bersama: p.tinggal_bersama,
+    status_pernikahan: p.status_pernikahan, darurat_nama: p.darurat_nama, darurat_hubungan: p.darurat_hubungan,
+    darurat_alamat: p.darurat_alamat, darurat_notelp: p.darurat_notelp,
+    status: "Menunggu Verifikasi", bukti_bayar_url: buktiUrl
+  };
+
+  var row = currentHeaders.map(function (h) { return rowData.hasOwnProperty(h) ? rowData[h] : ""; });
+  sh.appendRow(row);
+  return jsonOutput({ result: "success", id: id, bukti_bayar_url: buktiUrl });
 }
 
 function verifyPpdb(id) {

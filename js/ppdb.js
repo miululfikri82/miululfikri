@@ -1,151 +1,310 @@
 /*=========================================
-PPDB FORM -> GOOGLE SHEET -> WHATSAPP
+PPDB ONLINE - MI ULUL FIKRI
+Menangani: tampilan Persyaratan & Rincian Biaya (dinamis),
+rekap kuota, tabel saudara kandung, dan submit form
+(termasuk upload bukti pembayaran) ke Google Apps Script.
 =========================================*/
 
-// GANTI URL INI dengan URL Web App dari Apps Script kamu
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx6A_JrDbsjofxgEB6TQUfV0L5FPcpmV9YYs0JCzgRlkaYaeFXGFna40VSHIxuwdLp13g/exec";
+// GANTI dengan URL Web App Google Apps Script yang sama dengan di js/admin.js
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxjedZtAtzXnoxqAQ7y4KY8gKa5BjH3cfPMa_otQajEE02gKADm0poUIvA3R1Wol86sXw/exec";
 
-// Nomor WhatsApp admin/sekolah (format: kode negara tanpa + atau 0 di depan)
-const WA_NUMBER = "62895375689961";
+// GANTI dengan nomor WhatsApp admin PPDB (format: kode negara tanpa "+", contoh 62812xxxxxxx)
+const ADMIN_WA_NUMBER = "62895375689961";
 
-// Info biaya (dari brosur). Lengkapi/ubah di sini kalau ada perubahan biaya.
-const INFO_BIAYA = {
-    "Reguler|Gelombang I (Januari-Maret)":
-        "Total Biaya Masuk: Rp850.000 (Formulir Rp50.000 + Seragam Rp400.000 + Infak Bangunan/Kursi Rp400.000). Tambahan: Ekskul & Tahfidz Rp25.000/bulan.",
-    "Intensif|Gelombang II (April-Juni)":
-        "Total Biaya Masuk: Rp2.200.000 (Formulir Rp50.000 + Seragam Rp400.000 + Bangunan/Kursi/AC Rp1.750.000). SPP: Rp130.000/bulan.",
-};
+function formatRupiah(angka) {
+    const n = Number(angka) || 0;
+    return "Rp " + n.toLocaleString("id-ID");
+}
 
-document.addEventListener("DOMContentLoaded", function () {
+// ---- Helper: kirim POST JSON ke Apps Script (menghindari CORS preflight) ----
+function postAction(payload) {
+    return fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload),
+    }).then((res) => res.json());
+}
 
-    const form = document.getElementById("ppdbForm");
-    const submitBtn = document.getElementById("ppdbSubmitBtn");
-    const statusBox = document.getElementById("ppdbStatus");
-    const iframe = document.querySelector('iframe[name="hidden_iframe"]');
-    const kelasSelect = document.getElementById("kelasPilihan");
-    const gelombangSelect = document.getElementById("gelombangPilihan");
+/* ============ REKAP KUOTA ============ */
+function muatRekapKuota() {
+    fetch(`${GOOGLE_SCRIPT_URL}?action=rekap_kuota`)
+        .then((res) => res.json())
+        .then((data) => {
+            const el = document.getElementById("rekapKuota");
+            const text = document.getElementById("rekapText");
+            if (!el || !text) return;
+            text.textContent = `${data.total_pendaftar || 0} pendaftar, ${data.terverifikasi || 0} terverifikasi`;
+            el.style.display = "block";
+        })
+        .catch(() => { });
+}
+
+/* ============ PERSYARATAN & RINCIAN BIAYA (PUBLIK) ============ */
+let daftarBiayaCache = [];
+
+function muatInfoPersyaratan() {
+    const list = document.getElementById("persyaratanPublicList");
+    if (!list) return;
+    fetch(`${GOOGLE_SCRIPT_URL}?action=list_persyaratan`)
+        .then((res) => res.json())
+        .then((data) => {
+            if (!data.length) {
+                list.innerHTML = '<p class="text-muted mb-0">Belum ada data persyaratan.</p>';
+                return;
+            }
+            list.innerHTML = data
+                .map((d) => {
+                    const items = (d.daftar_item || "").split("\n").filter(Boolean);
+                    const itemsHtml = items.map((it) => `<li>${it}</li>`).join("");
+                    return `
+                    <div class="mb-3">
+                        <span class="badge bg-success-subtle text-success mb-1">${d.jenis || "Persyaratan"}</span>
+                        <h6 class="mb-1">${d.kategori}</h6>
+                        <ul class="mb-0 ps-3">${itemsHtml}</ul>
+                    </div>
+                `;
+                })
+                .join("");
+        })
+        .catch(() => {
+            list.innerHTML = '<p class="text-danger mb-0">Gagal memuat data persyaratan.</p>';
+        });
+}
+
+function muatInfoBiaya() {
+    const list = document.getElementById("biayaPublicList");
+    fetch(`${GOOGLE_SCRIPT_URL}?action=list_biaya`)
+        .then((res) => res.json())
+        .then((data) => {
+            daftarBiayaCache = data || [];
+            if (list) {
+                if (!data.length) {
+                    list.innerHTML = '<p class="text-muted mb-0">Belum ada rincian biaya.</p>';
+                } else {
+                    list.innerHTML = data
+                        .map((d) => {
+                            let items = [];
+                            try { items = JSON.parse(d.item_json || "[]"); } catch (e) { items = []; }
+                            const itemsHtml = items
+                                .map((it) => `<li class="d-flex justify-content-between"><span>${it.nama}</span><span>${formatRupiah(it.nominal)}</span></li>`)
+                                .join("");
+                            return `
+                            <div class="mb-3">
+                                <h6 class="mb-1">${d.kelas} - ${d.gelombang} ${d.periode ? `<small class="text-muted">(${d.periode})</small>` : ""}</h6>
+                                <ul class="list-unstyled mb-1 ps-1">${itemsHtml}</ul>
+                                <div class="fw-bold text-success">Total: ${formatRupiah(d.total)}</div>
+                                ${d.biaya_bulanan ? `<div class="text-muted">${d.biaya_bulanan}</div>` : ""}
+                            </div>
+                        `;
+                        })
+                        .join("");
+                }
+            }
+            tampilkanInfoBiayaTerpilih();
+        })
+        .catch(() => {
+            if (list) list.innerHTML = '<p class="text-danger mb-0">Gagal memuat rincian biaya.</p>';
+        });
+}
+
+// Cocokkan paket biaya dengan pilihan kelas & gelombang yang dipilih user di form,
+// lalu tampilkan di #infoBiaya + perbarui hint minimal bayar (biaya formulir).
+function tampilkanInfoBiayaTerpilih() {
+    const kelasSel = document.getElementById("kelasPilihan");
+    const gelombangSel = document.getElementById("gelombangPilihan");
     const infoBiaya = document.getElementById("infoBiaya");
+    const hint = document.getElementById("buktiBayarHint");
+    if (!kelasSel || !gelombangSel || !infoBiaya) return;
 
-    if (!form) return;
+    const kelas = kelasSel.value;
+    // Value gelombang di form ada keterangan bulan, mis. "Gelombang I (Januari-Maret)".
+    // Ambil kata intinya saja ("Gelombang I") supaya cocok dengan data admin.
+    const gelombangInti = (gelombangSel.value.split("(")[0] || "").trim();
 
-    form.setAttribute("action", GOOGLE_SCRIPT_URL);
-    form.setAttribute("method", "POST");
-
-    // ---- Rekapitulasi kuota pendaftar (publik) ----
-    const KUOTA_MAKS = 200; // ganti sesuai kuota sekolah tahun ini
-    const rekapKuota = document.getElementById("rekapKuota");
-    const rekapText = document.getElementById("rekapText");
-    if (rekapKuota && !GOOGLE_SCRIPT_URL.includes("PASTE_URL")) {
-        fetch(`${GOOGLE_SCRIPT_URL}?action=rekap_kuota`)
-            .then((res) => res.json())
-            .then((data) => {
-                rekapText.textContent = `${data.terverifikasi} / ${KUOTA_MAKS} kuota terisi (terverifikasi)`;
-                rekapKuota.style.display = "block";
-            })
-            .catch(() => {});
+    if (!kelas || !gelombangInti) {
+        infoBiaya.classList.add("d-none");
+        return;
     }
 
-    // ---- Info biaya otomatis ----
-    function updateInfoBiaya() {
-        const key = `${kelasSelect.value}|${gelombangSelect.value}`;
-        if (INFO_BIAYA[key]) {
-            infoBiaya.textContent = INFO_BIAYA[key];
-            infoBiaya.classList.remove("d-none");
-        } else if (kelasSelect.value && gelombangSelect.value) {
-            infoBiaya.textContent = "Info biaya untuk kombinasi ini belum tersedia di sistem — silakan tanya admin via WhatsApp untuk rincian biaya pastinya.";
-            infoBiaya.classList.remove("d-none");
-        } else {
-            infoBiaya.classList.add("d-none");
+    const cocok = daftarBiayaCache.find(
+        (d) => d.kelas === kelas && (d.gelombang || "").trim() === gelombangInti
+    );
+
+    if (!cocok) {
+        infoBiaya.classList.add("d-none");
+        return;
+    }
+
+    let items = [];
+    try { items = JSON.parse(cocok.item_json || "[]"); } catch (e) { items = []; }
+    const itemsHtml = items
+        .map((it) => `<div class="d-flex justify-content-between"><span>${it.nama}</span><span>${formatRupiah(it.nominal)}</span></div>`)
+        .join("");
+    infoBiaya.innerHTML = `
+        <div class="fw-bold mb-2"><i class="bi bi-info-circle-fill"></i> Rincian Biaya untuk ${kelas} - ${gelombangSel.value}</div>
+        ${itemsHtml}
+        <hr class="my-2">
+        <div class="d-flex justify-content-between fw-bold">
+            <span>Total Biaya Masuk</span><span>${formatRupiah(cocok.total)}</span>
+        </div>
+        ${cocok.biaya_bulanan ? `<div class="mt-1">${cocok.biaya_bulanan}</div>` : ""}
+    `;
+    infoBiaya.classList.remove("d-none");
+
+    // Cari item yang mengandung kata "formulir" untuk info minimal bayar
+    if (hint) {
+        const formulirItem = items.find((it) => /formulir/i.test(it.nama || ""));
+        if (formulirItem) {
+            hint.innerHTML = `Silakan transfer <strong>minimal ${formatRupiah(formulirItem.nominal)}</strong> (Biaya Formulir untuk ${kelas} - ${gelombangSel.value}), lalu upload bukti transfer di sini (foto/scan, format JPG/PNG/PDF, maks. 5MB).`;
         }
     }
-    if (kelasSelect && gelombangSelect) {
-        kelasSelect.addEventListener("change", updateInfoBiaya);
-        gelombangSelect.addEventListener("change", updateInfoBiaya);
-    }
+}
 
-    // ---- Tabel Saudara Kandung dinamis ----
-    window.tambahBarisSaudara = function () {
-        const tbody = document.querySelector("#saudaraTable tbody");
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td><input type="text" class="form-control form-control-sm sdr-nama"></td>
-            <td>
-                <select class="form-select form-select-sm sdr-jk">
-                    <option value="L">L</option>
-                    <option value="P">P</option>
-                </select>
-            </td>
-            <td><input type="text" class="form-control form-control-sm sdr-pendidikan"></td>
-            <td><input type="text" class="form-control form-control-sm sdr-sekolah"></td>
-            <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove()"><i class="bi bi-trash"></i></button></td>
-        `;
-        tbody.appendChild(row);
-    };
-    // baris pertama otomatis saat halaman dibuka
-    tambahBarisSaudara();
+document.addEventListener("DOMContentLoaded", function () {
+    muatRekapKuota();
+    muatInfoPersyaratan();
+    muatInfoBiaya();
 
-    function serializeSaudara() {
-        const rows = document.querySelectorAll("#saudaraTable tbody tr");
-        const data = [];
-        rows.forEach((row) => {
-            const nama = row.querySelector(".sdr-nama").value.trim();
-            if (!nama) return;
-            data.push({
-                nama: nama,
-                lp: row.querySelector(".sdr-jk").value,
-                pendidikan: row.querySelector(".sdr-pendidikan").value.trim(),
-                sekolah: row.querySelector(".sdr-sekolah").value.trim(),
-            });
+    const kelasSel = document.getElementById("kelasPilihan");
+    const gelombangSel = document.getElementById("gelombangPilihan");
+    if (kelasSel) kelasSel.addEventListener("change", tampilkanInfoBiayaTerpilih);
+    if (gelombangSel) gelombangSel.addEventListener("change", tampilkanInfoBiayaTerpilih);
+
+    // preview nama file bukti bayar yang dipilih
+    const buktiInput = document.getElementById("buktiBayarInput");
+    if (buktiInput) {
+        buktiInput.addEventListener("change", function () {
+            const preview = document.getElementById("buktiBayarPreview");
+            if (!preview) return;
+            if (this.files && this.files[0]) {
+                const f = this.files[0];
+                if (f.size > 5 * 1024 * 1024) {
+                    preview.className = "small text-danger mt-2";
+                    preview.textContent = "Ukuran file terlalu besar, maksimal 5MB.";
+                    this.value = "";
+                    return;
+                }
+                preview.className = "small text-success mt-2";
+                preview.textContent = `File dipilih: ${f.name} (${(f.size / 1024).toFixed(0)} KB)`;
+            } else {
+                preview.textContent = "";
+            }
         });
-        return JSON.stringify(data);
     }
+});
 
-    let isSubmitting = false;
+/* ============ TABEL SAUDARA KANDUNG ============ */
+function tambahBarisSaudara() {
+    const tbody = document.querySelector("#saudaraTable tbody");
+    if (!tbody) return;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+        <td><input type="text" class="form-control form-control-sm saudara-nama"></td>
+        <td>
+            <select class="form-select form-select-sm saudara-jk">
+                <option value="L">L</option>
+                <option value="P">P</option>
+            </select>
+        </td>
+        <td><input type="text" class="form-control form-control-sm saudara-pendidikan"></td>
+        <td><input type="text" class="form-control form-control-sm saudara-sekolah"></td>
+        <td class="text-center">
+            <button type="button" class="btn btn-sm btn-outline-danger btn-hapus-saudara"><i class="bi bi-x"></i></button>
+        </td>
+    `;
+    tr.querySelector(".btn-hapus-saudara").addEventListener("click", () => tr.remove());
+    tbody.appendChild(tr);
+}
 
-    form.addEventListener("submit", function (event) {
+function ambilDataSaudara() {
+    const rows = document.querySelectorAll("#saudaraTable tbody tr");
+    const data = [];
+    rows.forEach((tr) => {
+        const nama = tr.querySelector(".saudara-nama")?.value.trim();
+        if (!nama) return;
+        data.push({
+            nama: nama,
+            jk: tr.querySelector(".saudara-jk")?.value || "",
+            pendidikan: tr.querySelector(".saudara-pendidikan")?.value || "",
+            sekolah: tr.querySelector(".saudara-sekolah")?.value || "",
+        });
+    });
+    return data;
+}
 
-        if (GOOGLE_SCRIPT_URL.includes("PASTE_URL")) {
-            statusBox.innerHTML = '<span class="text-danger">URL Google Script belum diisi. Cek file js/ppdb.js.</span>';
-            event.preventDefault();
+/* ============ SUBMIT FORM PPDB ============ */
+
+// Baca file sebagai base64 (tanpa prefix "data:...;base64,")
+function bacaFileBase64(file) {
+    return new Promise((resolve, reject) => {
+        if (!file) { resolve(""); return; }
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(",")[1] || "");
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+const ppdbForm = document.getElementById("ppdbForm");
+if (ppdbForm) {
+    ppdbForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const statusEl = document.getElementById("ppdbStatus");
+        const submitBtn = document.getElementById("ppdbSubmitBtn");
+        const buktiInput = document.getElementById("buktiBayarInput");
+
+        if (!buktiInput || !buktiInput.files || !buktiInput.files[0]) {
+            statusEl.innerHTML = '<div class="alert alert-danger mb-0">Mohon upload bukti pembayaran terlebih dahulu.</div>';
+            buktiInput?.scrollIntoView({ behavior: "smooth", block: "center" });
             return;
         }
 
-        document.getElementById("saudaraKandungData").value = serializeSaudara();
+        // simpan data saudara kandung ke hidden input sebelum serialize
+        const saudaraField = document.getElementById("saudaraKandungData");
+        if (saudaraField) saudaraField.value = JSON.stringify(ambilDataSaudara());
 
-        isSubmitting = true;
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Mengirim data...';
-        statusBox.innerHTML = "";
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Mengirim...';
+        statusEl.innerHTML = '<div class="alert alert-info mb-0">Mengirim data pendaftaran, mohon tunggu...</div>';
+
+        const formData = new FormData(ppdbForm);
+        const payload = {};
+        formData.forEach((value, key) => { payload[key] = value; });
+
+        const file = buktiInput.files[0];
+        bacaFileBase64(file)
+            .then((base64) => {
+                payload.bukti_base64 = base64;
+                payload.bukti_nama = file.name;
+                payload.bukti_mime = file.type;
+                return postAction(payload);
+            })
+            .then((res) => {
+                if (res && res.result === "success") {
+                    const namaAnak = payload.nama || "";
+                    const pesan = encodeURIComponent(
+                        `Assalamu'alaikum, saya baru saja mendaftarkan ananda ${namaAnak} untuk PPDB ${payload.tahun_ajaran || ""} kelas ${payload.kelas_pilihan || ""} (${payload.gelombang || ""}). Bersama ini saya sudah upload bukti pembayaran. Mohon konfirmasinya. Terima kasih.`
+                    );
+                    const waUrl = `https://wa.me/${ADMIN_WA_NUMBER}?text=${pesan}`;
+                    statusEl.innerHTML = `<div class="alert alert-success mb-0"><i class="bi bi-check-circle-fill"></i> Pendaftaran berhasil dikirim! Mengarahkan ke WhatsApp admin... Jika tidak otomatis terbuka, <a href="${waUrl}" target="_blank" rel="noopener">klik di sini</a>.</div>`;
+                    ppdbForm.reset();
+                    document.getElementById("buktiBayarPreview").textContent = "";
+                    document.getElementById("infoBiaya").classList.add("d-none");
+                    // Redirect langsung (bukan window.open) supaya tidak diblokir popup blocker,
+                    // karena window.open setelah proses async (fetch) sering dianggap bukan aksi
+                    // klik langsung oleh browser.
+                    window.location.href = waUrl;
+                } else {
+                    statusEl.innerHTML = `<div class="alert alert-danger mb-0">Gagal mengirim data: ${(res && res.message) || "Terjadi kesalahan, silakan coba lagi."}</div>`;
+                }
+            })
+            .catch(() => {
+                statusEl.innerHTML = '<div class="alert alert-danger mb-0">Gagal mengirim data. Periksa koneksi internet lalu coba lagi.</div>';
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-send-fill"></i> Daftar Sekarang';
+            });
     });
-
-    iframe.addEventListener("load", function () {
-
-        if (!isSubmitting) return;
-
-        const data = new FormData(form);
-        const nama = data.get("nama") || "";
-        const kelas = data.get("kelas_pilihan") || "";
-        const gelombang = data.get("gelombang") || "";
-        const ayahNama = data.get("ayah_nama") || "";
-        const ibuNama = data.get("ibu_nama") || "";
-        const ibuNoTelp = data.get("ibu_notelp") || "";
-        const alamat = data.get("alamat") || "";
-
-        const pesan =
-            `Assalamu'alaikum, saya ingin mendaftarkan PPDB dengan data berikut:%0A` +
-            `Nama Siswa: ${nama}%0A` +
-            `Kelas: ${kelas} - ${gelombang}%0A` +
-            `Nama Ayah: ${ayahNama}%0A` +
-            `Nama Ibu: ${ibuNama}%0A` +
-            `No. WA Ibu/Ortu: ${ibuNoTelp}%0A` +
-            `Alamat: ${alamat}%0A%0A` +
-            `Mohon informasi langkah selanjutnya. Terima kasih.`;
-
-        statusBox.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill"></i> Data berhasil dikirim! Mengarahkan ke WhatsApp...</span>';
-
-        setTimeout(function () {
-            window.location.href = `https://wa.me/${WA_NUMBER}?text=${pesan}`;
-        }, 1200);
-    });
-
-});
+}

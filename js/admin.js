@@ -76,7 +76,7 @@ function muatPpdb() {
         .then((data) => {
             const tbody = document.getElementById("ppdbTableBody");
             if (!data.length) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Belum ada pendaftar.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Belum ada pendaftar.</td></tr>';
                 return;
             }
             tbody.innerHTML = data
@@ -86,6 +86,10 @@ function muatPpdb() {
                         <td>${d.kelas_pilihan || "-"} / ${d.gelombang || "-"}</td>
                         <td>${d.ayah_nama || d.ibu_nama || "-"}</td>
                         <td>${d.ibu_notelp || d.ayah_notelp || "-"}</td>
+                        <td>${d.bukti_bayar_url
+                                ? `<a class="btn btn-sm btn-outline-success" target="_blank" href="${d.bukti_bayar_url}"><i class="bi bi-receipt"></i> Lihat</a>`
+                                : '<span class="text-muted small">Belum ada</span>'
+                            }</td>
                         <td><span class="badge ${d.status === "Terverifikasi" ? "bg-success" : "bg-warning text-dark"}">${d.status || "-"}</span></td>
                         <td>
                             ${d.status !== "Terverifikasi"

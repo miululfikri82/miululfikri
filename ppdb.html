@@ -7,7 +7,8 @@
     <title>PPDB Online | MI Ulul Fikri Tajurhalang Bogor</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 
@@ -72,19 +73,47 @@
                 </span>
             </div>
 
+            <!-- ===== INFO PERSYARATAN & RINCIAN BIAYA (dimuat dinamis dari admin) ===== -->
+            <div class="row justify-content-center mb-5">
+                <div class="col-lg-9">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="contact-card h-100">
+                                <h5 class="fw-bold text-success mb-3"><i class="bi bi-clipboard-check-fill"></i>
+                                    Persyaratan &amp; Perlengkapan</h5>
+                                <div id="persyaratanPublicList" class="small">
+                                    <p class="text-muted mb-0">Memuat data persyaratan...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="contact-card h-100">
+                                <h5 class="fw-bold text-success mb-3"><i class="bi bi-cash-coin"></i>
+                                    Rincian Biaya Masuk</h5>
+                                <div id="biayaPublicList" class="small">
+                                    <p class="text-muted mb-0">Memuat rincian biaya...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="row justify-content-center">
                 <div class="col-lg-9">
                     <div class="contact-card">
 
-                        <form id="ppdbForm" target="hidden_iframe">
+                        <form id="ppdbForm">
                             <input type="hidden" name="action" value="submit_ppdb">
 
                             <!-- ===== PILIHAN KELAS & GELOMBANG ===== -->
-                            <h4 class="fw-bold text-success mb-3"><i class="bi bi-mortarboard-fill"></i> Pilihan Kelas &amp; Gelombang</h4>
+                            <h4 class="fw-bold text-success mb-3"><i class="bi bi-mortarboard-fill"></i> Pilihan Kelas
+                                &amp; Gelombang</h4>
                             <div class="row">
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">Tahun Ajaran</label>
-                                    <input type="text" name="tahun_ajaran" class="form-control" value="2026-2027" readonly>
+                                    <input type="text" name="tahun_ajaran" class="form-control" value="2026-2027"
+                                        readonly>
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">Jenis Kelas</label>
@@ -98,17 +127,70 @@
                                     <label class="form-label">Gelombang</label>
                                     <select name="gelombang" id="gelombangPilihan" class="form-select" required>
                                         <option value="" selected disabled>Pilih gelombang</option>
-                                        <option value="Gelombang I (Januari-Maret)">Gelombang I (Januari - Maret)</option>
+                                        <option value="Gelombang I (Januari-Maret)">Gelombang I (Januari - Maret)
+                                        </option>
                                         <option value="Gelombang II (April-Juni)">Gelombang II (April - Juni)</option>
                                     </select>
                                 </div>
                             </div>
                             <div id="infoBiaya" class="alert alert-success d-none mb-4"></div>
 
+                            <!-- ===== REKENING PEMBAYARAN ===== -->
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-bank"></i> Rekening Pembayaran (pilih salah satu)
+                                </label>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <div class="border rounded-3 p-3 h-100">
+                                            <div class="fw-bold text-success mb-1">NAMA BANK 1</div>
+                                            <div class="small text-muted">No. Rekening</div>
+                                            <div class="fw-semibold">0000000000</div>
+                                            <div class="small text-muted mt-1">Atas Nama</div>
+                                            <div class="fw-semibold">Nama Pemilik Rekening</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="border rounded-3 p-3 h-100">
+                                            <div class="fw-bold text-success mb-1">NAMA BANK 2</div>
+                                            <div class="small text-muted">No. Rekening</div>
+                                            <div class="fw-semibold">0000000000</div>
+                                            <div class="small text-muted mt-1">Atas Nama</div>
+                                            <div class="fw-semibold">Nama Pemilik Rekening</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="border rounded-3 p-3 h-100">
+                                            <div class="fw-bold text-success mb-1">NAMA BANK 3</div>
+                                            <div class="small text-muted">No. Rekening</div>
+                                            <div class="fw-semibold">0000000000</div>
+                                            <div class="small text-muted mt-1">Atas Nama</div>
+                                            <div class="fw-semibold">Nama Pemilik Rekening</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ===== UPLOAD BUKTI PEMBAYARAN ===== -->
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-receipt"></i> Upload Bukti Pembayaran
+                                </label>
+                                <p class="text-muted small mb-2" id="buktiBayarHint">
+                                    Silakan transfer <strong>minimal sejumlah Biaya Formulir</strong> (lihat rincian
+                                    biaya di atas setelah memilih kelas &amp; gelombang), lalu upload bukti transfer
+                                    di sini (foto/scan, format JPG/PNG/PDF, maks. 5MB).
+                                </p>
+                                <input type="file" id="buktiBayarInput" class="form-control" accept="image/*,.pdf"
+                                    required>
+                                <div id="buktiBayarPreview" class="small text-success mt-2"></div>
+                            </div>
+
                             <hr class="my-4">
 
                             <!-- ===== A. KETERANGAN UMUM ===== -->
-                            <h4 class="fw-bold text-success mb-3"><i class="bi bi-person-fill"></i> A. Keterangan Umum</h4>
+                            <h4 class="fw-bold text-success mb-3"><i class="bi bi-person-fill"></i> A. Keterangan Umum
+                            </h4>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Nama Lengkap</label>
@@ -140,7 +222,8 @@
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">Jml Saudara Kandung</label>
-                                    <input type="number" min="0" name="saudara_kandung_jml" class="form-control" value="0">
+                                    <input type="number" min="0" name="saudara_kandung_jml" class="form-control"
+                                        value="0">
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">Jml Saudara Tiri</label>
@@ -176,7 +259,8 @@
                             <hr class="my-4">
 
                             <!-- ===== B. KETERANGAN ORANG TUA ===== -->
-                            <h4 class="fw-bold text-success mb-3"><i class="bi bi-people-fill"></i> B. Keterangan Orang Tua</h4>
+                            <h4 class="fw-bold text-success mb-3"><i class="bi bi-people-fill"></i> B. Keterangan Orang
+                                Tua</h4>
 
                             <h6 class="fw-bold mt-3">Ayah</h6>
                             <div class="row">
@@ -260,7 +344,8 @@
 
                             <!-- ===== C. KETERANGAN WALI ===== -->
                             <div class="form-check mb-3">
-                                <input class="form-check-input" type="checkbox" id="adaWali" onchange="document.getElementById('waliFields').classList.toggle('d-none', !this.checked)">
+                                <input class="form-check-input" type="checkbox" id="adaWali"
+                                    onchange="document.getElementById('waliFields').classList.toggle('d-none', !this.checked)">
                                 <label class="form-check-label fw-bold text-success" for="adaWali">
                                     <i class="bi bi-person-badge-fill"></i> C. Ada Wali (isi jika ada)
                                 </label>
@@ -317,7 +402,8 @@
                                     <tbody></tbody>
                                 </table>
                             </div>
-                            <button type="button" class="btn btn-outline-success btn-sm mb-4" onclick="tambahBarisSaudara()">
+                            <button type="button" class="btn btn-outline-success btn-sm mb-4"
+                                onclick="tambahBarisSaudara()">
                                 <i class="bi bi-plus-circle"></i> Tambah Saudara
                             </button>
                             <input type="hidden" name="saudara_kandung_data" id="saudaraKandungData">
@@ -325,7 +411,8 @@
                             <hr class="my-4">
 
                             <!-- ===== E. SITUASI KELUARGA ===== -->
-                            <h4 class="fw-bold text-success mb-3"><i class="bi bi-house-heart-fill"></i> E. Situasi Keluarga</h4>
+                            <h4 class="fw-bold text-success mb-3"><i class="bi bi-house-heart-fill"></i> E. Situasi
+                                Keluarga</h4>
                             <div class="mb-3">
                                 <label class="form-label">1. Siswa Tinggal Bersama</label>
                                 <select name="tinggal_bersama" class="form-select">
@@ -354,7 +441,8 @@
                             <hr class="my-4">
 
                             <!-- ===== F. KONTAK DARURAT ===== -->
-                            <h4 class="fw-bold text-success mb-3"><i class="bi bi-telephone-forward-fill"></i> F. Kontak Darurat</h4>
+                            <h4 class="fw-bold text-success mb-3"><i class="bi bi-telephone-forward-fill"></i> F. Kontak
+                                Darurat</h4>
                             <p class="text-muted small">Kontak yang dapat dihubungi selain orang tua/wali murid.</p>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
@@ -398,8 +486,6 @@
 
         </div>
     </section>
-
-    <iframe name="hidden_iframe" style="display:none;"></iframe>
 
     <footer class="footer">
         <div class="container">
