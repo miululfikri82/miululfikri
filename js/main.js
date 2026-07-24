@@ -120,31 +120,35 @@ BACK TO TOP
 
 const backToTop = document.getElementById("backToTop");
 
-window.addEventListener("scroll", function () {
+if (backToTop) {
 
-    if (window.scrollY > 300) {
+    window.addEventListener("scroll", function () {
 
-        backToTop.classList.add("show");
+        if (window.scrollY > 300) {
 
-    } else {
+            backToTop.classList.add("show");
 
-        backToTop.classList.remove("show");
+        } else {
 
-    }
+            backToTop.classList.remove("show");
 
-});
-
-backToTop.addEventListener("click", function () {
-
-    window.scrollTo({
-
-        top: 0,
-
-        behavior: "smooth"
+        }
 
     });
 
-});
+    backToTop.addEventListener("click", function () {
+
+        window.scrollTo({
+
+            top: 0,
+
+            behavior: "smooth"
+
+        });
+
+    });
+
+}
 /*=========================================
 DARK MODE
 =========================================*/
