@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guru & Tenaga Kependidikan | MI Ulul Fikri Tajurhalang Bogor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .guru-card { background: var(--card); border-radius: 18px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,.08); transition: .3s; height: 100%; }
+        .guru-card:hover { transform: translateY(-8px); }
+        .guru-card img { width: 100%; height: 260px; object-fit: cover; }
+        .guru-card .guru-body { padding: 20px; }
+        .guru-card h5 { margin-bottom: 2px; }
+        .guru-card .jabatan { color: #198754; font-size: 14px; font-weight: 600; margin-bottom: 10px; display: block; }
+    </style>
+</head>
+
+<body>
+
+    <section class="topbar">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6"><span><i class="bi bi-award-fill"></i> Madrasah Hebat Bermartabat</span></div>
+                <div class="col-lg-6 text-end d-none d-lg-block">
+                    <span class="me-4"><i class="bi bi-telephone-fill"></i> (021) 12345678</span>
+                    <span class="me-4"><i class="bi bi-envelope-fill"></i> info@miululfikri.sch.id</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="index.html">
+                <img src="assets/img/logo.png" width="65">
+                <div class="ms-3">
+                    <h4 class="m-0 fw-bold text-success">MI ULUL FIKRI</h4>
+                    <small>Tajurhalang - Bogor</small>
+                </div>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbar">
+                <ul class="navbar-nav mx-auto">
+                    <li class="nav-item"><a class="nav-link" href="index.html">Beranda</a></li>
+                    <li class="nav-item"><a class="nav-link" href="profil.html">Profil</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="guru.html">Guru</a></li>
+                    <li class="nav-item"><a class="nav-link" href="akademik.html">Akademik</a></li>
+                    <li class="nav-item"><a class="nav-link" href="kesiswaan.html">Kesiswaan</a></li>
+                    <li class="nav-item"><a class="nav-link" href="ekstrakulikuler.html">Ekstrakurikuler</a></li>
+                    <li class="nav-item"><a class="nav-link" href="berita.html">Berita</a></li>
+                    <li class="nav-item"><a class="nav-link" href="ppdb.html">PPDB</a></li>
+                    <li class="nav-item"><a class="nav-link" href="kontak.html">Kontak</a></li>
+                </ul>
+                <button id="themeToggle" class="theme-toggle" aria-label="Toggle Dark Mode">
+                    <i class="bi bi-moon-stars-fill"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <section class="py-5">
+        <div class="container">
+
+            <div class="text-center mb-5">
+                <span class="badge bg-warning text-dark mb-2">Tenaga Pendidik</span>
+                <h2 class="fw-bold">Guru &amp; Tenaga Kependidikan</h2>
+                <p class="text-muted">[Ini template placeholder. Ganti foto di assets/img/guru1.jpg dst dan teks di
+                    bawah ini dengan data guru yang sebenarnya — nama, jabatan, dan bio singkat.]</p>
+            </div>
+
+            <div class="row g-4">
+
+                <div class="col-lg-4 col-md-6">
+                    <div class="guru-card">
+                        <img src="assets/img/guru1.jpg" alt="Foto Kepala Madrasah">
+                        <div class="guru-body">
+                            <span class="jabatan">Kepala Madrasah</span>
+                            <h5>[Nama Kepala Madrasah]</h5>
+                            <p class="small text-muted mb-0">[Ganti dengan bio singkat: latar belakang pendidikan
+                                dan pengalaman mengajar.]</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-6">
+                    <div class="guru-card">
+                        <img src="assets/img/guru2.jpg" alt="Foto Wakil Kepala Madrasah">
+                        <div class="guru-body">
+                            <span class="jabatan">Wakil Kepala Madrasah</span>
+                            <h5>[Nama Wakil Kepala]</h5>
+                            <p class="small text-muted mb-0">[Ganti dengan bio singkat.]</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-6">
+                    <div class="guru-card">
+                        <img src="assets/img/guru3.jpg" alt="Foto Guru Kelas 1">
+                        <div class="guru-body">
+                            <span class="jabatan">Wali Kelas 1</span>
+                            <h5>[Nama Guru]</h5>
+                            <p class="small text-muted mb-0">[Ganti dengan bio singkat.]</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-6">
+                    <div class="guru-card">
+                        <img src="assets/img/guru4.jpg" alt="Foto Guru Kelas 2">
+                        <div class="guru-body">
+                            <span class="jabatan">Wali Kelas 2</span>
+                            <h5>[Nama Guru]</h5>
+                            <p class="small text-muted mb-0">[Ganti dengan bio singkat.]</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-6">
+                    <div class="guru-card">
+                        <img src="assets/img/guru5.jpg" alt="Foto Guru Tahfidz">
+                        <div class="guru-body">
+                            <span class="jabatan">Guru Tahfidz</span>
+                            <h5>[Nama Guru]</h5>
+                            <p class="small text-muted mb-0">[Ganti dengan bio singkat.]</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-6">
+                    <div class="guru-card">
+                        <img src="assets/img/guru6.jpg" alt="Foto Staf Tata Usaha">
+                        <div class="guru-body">
+                            <span class="jabatan">Staf Tata Usaha</span>
+                            <h5>[Nama Staf]</h5>
+                            <p class="small text-muted mb-0">[Ganti dengan bio singkat.]</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <p class="text-center text-muted small mt-4">
+                <i class="bi bi-info-circle"></i> Salin blok "col-lg-4 col-md-6" di atas untuk menambah guru baru.
+            </p>
+
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <div class="row align-items-center">
+                    <div class="col-lg-6">© 2026 MI Ulul Fikri. All Rights Reserved.</div>
+                    <div class="col-lg-6 text-lg-end">Developed by <strong>IT MI Ulul Fikri</strong></div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <button id="backToTop" aria-label="Kembali ke atas"><i class="bi bi-chevron-up"></i></button>
+
+    <a href="https://wa.me/62895375689961?text=Assalamu'"'"'alaikum,%20saya%20ingin%20bertanya%20tentang%20MI%20Ulul%20Fikri." class="floating-wa" target="_blank" aria-label="Hubungi Kami via WhatsApp">
+        <div class="wa-text">Hubungi Kami</div>
+        <div class="wa-icon"><i class="bi bi-whatsapp"></i></div>
+    </a>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/main.js"></script>
+
+</body>
+
+</html>
