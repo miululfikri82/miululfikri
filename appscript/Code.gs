@@ -100,6 +100,9 @@ function doGet(e) {
   if (action === "list_persyaratan") {
     return jsonOutput(sheetToObjects(sheet("Persyaratan")).reverse());
   }
+  if (action === "download_ppdb_pdf") {
+    return downloadPpdbPdf(e.parameter.id);
+  }
 
   return ContentService.createTextOutput("Script aktif. Gunakan parameter ?action=").setMimeType(ContentService.MimeType.TEXT);
 }
@@ -116,7 +119,11 @@ function doPost(e) {
   // Kalau data dikirim sebagai JSON (fetch dari ppdb.js/admin.js), pakai body.
   // Kalau dikirim sebagai form submit klasik, pakai e.parameter.
   var data = (isJson && Object.keys(body).length) ? body : p;
-  var action = data.action || "submit_ppdb";
+  var action = data.action || "";
+
+  if (!action) {
+    return jsonOutput({ result: "error", message: "Aksi tidak ditemukan pada request" });
+  }
 
   if (action === "submit_ppdb") {
     return submitPpdb(data);
@@ -283,4 +290,247 @@ function updatePersyaratan(body) {
     sh.getRange(row, colIndex).setValue(values[i]);
   });
   return jsonOutput({ result: "success" });
+}
+
+/* ============ UNDUH PDF FORMULIR PPDB + BUKTI PEMBAYARAN ============ */
+
+function formatTanggalGs(val) {
+  if (!val) return "-";
+  if (Object.prototype.toString.call(val) === "[object Date]") {
+    return Utilities.formatDate(val, Session.getScriptTimeZone(), "dd MMMM yyyy");
+  }
+  return String(val);
+}
+
+// Ambil file ID dari URL Google Drive, mis. https://drive.google.com/file/d/FILE_ID/view
+function ekstrakDriveFileId(url) {
+  var m = String(url || "").match(/\/d\/([a-zA-Z0-9_-]+)/);
+  return m ? m[1] : null;
+}
+
+// Tambah judul bagian (mis. "A. Keterangan Umum") dengan gaya hijau & tebal.
+// Semua atribut di-set eksplisit (termasuk yang di-nonaktifkan) supaya tidak
+// "menempel" ke elemen berikutnya yang dibuat setelah ini.
+function tambahJudulBagian(body, teks) {
+  var p = body.appendParagraph(teks);
+  p.setSpacingBefore(10).setSpacingAfter(4);
+  p.setAlignment(DocumentApp.HorizontalAlignment.LEFT);
+  p.editAsText()
+    .setBold(true)
+    .setItalic(false)
+    .setUnderline(false)
+    .setFontSize(11)
+    .setForegroundColor("#198754");
+  return p;
+}
+
+// Tambah tabel 2 kolom (label | value) tanpa border tebal, rapi seperti formulir.
+// Style value SELALU direset ke hitam/normal supaya tidak ikut warna/gaya judul.
+function tambahTabelLabelValue(body, rows) {
+  var table = body.appendTable();
+  table.setBorderWidth(0.5);
+  rows.forEach(function (r) {
+    var tr = table.appendTableRow();
+    var c1 = tr.appendTableCell(r[0]);
+    c1.setWidth(150);
+    c1.editAsText().setBold(true).setItalic(false).setFontSize(9).setForegroundColor("#000000");
+    var c2 = tr.appendTableCell(String(r[1] === undefined || r[1] === null || r[1] === "" ? "-" : r[1]));
+    c2.editAsText().setBold(false).setItalic(false).setFontSize(9).setForegroundColor("#000000");
+  });
+  return table;
+}
+
+function downloadPpdbPdf(id) {
+  var sh = sheet("Pendaftaran");
+  var semua = sheetToObjects(sh);
+  var d = null;
+  for (var i = 0; i < semua.length; i++) {
+    if (String(semua[i].id) === String(id)) { d = semua[i]; break; }
+  }
+  if (!d) return jsonOutput({ result: "error", message: "Data pendaftar tidak ditemukan" });
+
+  var doc = DocumentApp.create("Formulir PPDB - " + (d.nama || id));
+  var body = doc.getBody();
+  body.setMarginTop(24).setMarginBottom(24).setMarginLeft(36).setMarginRight(36);
+
+  // ---- Kop Surat ----
+  // Bikin paragraf kosong rata-tengah dulu, baru gambar disisipkan LANGSUNG ke
+  // paragraf itu (paragraph.appendInlineImage). Ini lebih pasti daripada
+  // body.appendImage() + reparenting, yang di beberapa kasus bisa gagal.
+  try {
+    var headerBlob = Utilities.newBlob(Utilities.base64Decode(LETTERHEAD_BASE64), "image/png", "kop.png");
+    var kopPar = body.appendParagraph("");
+    kopPar.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    var img = kopPar.appendInlineImage(headerBlob);
+    var ratio = img.getHeight() / img.getWidth();
+    img.setWidth(480);
+    img.setHeight(Math.round(480 * ratio));
+  } catch (err) {
+    var fallbackPar = body.appendParagraph("YAYASAN ULUL FIKRI INDONESIA (YUFI) - MADRASAH IBTIDAIYAH ULUL FIKRI: " + err.message);
+    fallbackPar.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    fallbackPar.editAsText().setBold(true).setItalic(false).setForegroundColor("#000000");
+  }
+
+  var garis = body.appendParagraph("");
+  garis.appendHorizontalRule();
+
+  // ---- Judul ----
+  var judul = body.appendParagraph("FORMULIR PENDAFTARAN PESERTA DIDIK BARU (PPDB)");
+  judul.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+  judul.editAsText().setBold(true).setItalic(false).setFontSize(13).setForegroundColor("#000000");
+
+  var sub = body.appendParagraph(
+    "Tahun Ajaran " + (d.tahun_ajaran || "-") + "  |  Kelas: " + (d.kelas_pilihan || "-") + "  |  " + (d.gelombang || "-")
+  );
+  sub.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+  sub.editAsText().setBold(false).setItalic(true).setFontSize(10).setForegroundColor("#000000");
+
+  var spasiAwal = body.appendParagraph("");
+  spasiAwal.editAsText().setItalic(false).setBold(false).setForegroundColor("#000000");
+
+  // ---- A. Keterangan Umum ----
+  tambahJudulBagian(body, "A. Keterangan Umum Siswa");
+  tambahTabelLabelValue(body, [
+    ["Nama Lengkap", d.nama],
+    ["Nama Panggilan", d.panggilan],
+    ["Jenis Kelamin", d.jk],
+    ["Tempat, Tanggal Lahir", (d.tempat_lahir || "-") + ", " + formatTanggalGs(d.tanggal_lahir)],
+    ["Anak Ke", d.anak_ke],
+    ["Jml Saudara Kandung", d.saudara_kandung_jml],
+    ["Jml Saudara Tiri", d.saudara_tiri_jml],
+    ["Tinggal Dengan", d.tinggal_dengan],
+    ["Alamat", d.alamat],
+    ["RT / RW", (d.rt || "-") + " / " + (d.rw || "-")],
+    ["Desa / Kecamatan", d.desa_kec],
+  ]);
+
+  // ---- B. Orang Tua ----
+  tambahJudulBagian(body, "B. Keterangan Orang Tua - Ayah");
+  tambahTabelLabelValue(body, [
+    ["Nama Ayah", d.ayah_nama],
+    ["Tempat/Tgl Lahir", d.ayah_ttl],
+    ["Pendidikan", d.ayah_pendidikan],
+    ["Pekerjaan", d.ayah_pekerjaan],
+    ["Penghasilan/Bulan", d.ayah_penghasilan],
+    ["Alamat", d.ayah_alamat],
+    ["No. Telp/HP", d.ayah_notelp],
+  ]);
+
+  tambahJudulBagian(body, "Keterangan Orang Tua - Ibu");
+  tambahTabelLabelValue(body, [
+    ["Nama Ibu", d.ibu_nama],
+    ["Tempat/Tgl Lahir", d.ibu_ttl],
+    ["Pendidikan", d.ibu_pendidikan],
+    ["Pekerjaan", d.ibu_pekerjaan],
+    ["Penghasilan/Bulan", d.ibu_penghasilan],
+    ["Alamat", d.ibu_alamat],
+    ["No. Telp/HP", d.ibu_notelp],
+  ]);
+
+  // ---- C. Wali (kalau ada) ----
+  if (d.wali_nama) {
+    tambahJudulBagian(body, "C. Keterangan Wali");
+    tambahTabelLabelValue(body, [
+      ["Nama Wali", d.wali_nama],
+      ["Tempat/Tgl Lahir", d.wali_ttl],
+      ["Pendidikan", d.wali_pendidikan],
+      ["Pekerjaan", d.wali_pekerjaan],
+      ["Alamat", d.wali_alamat],
+      ["No. Telp/HP", d.wali_notelp],
+    ]);
+  }
+
+  // ---- D. Saudara Kandung ----
+  tambahJudulBagian(body, "D. Saudara Kandung");
+  var saudara = [];
+  try { saudara = JSON.parse(d.saudara_kandung_data || "[]"); } catch (e) { saudara = []; }
+  if (saudara.length) {
+    var tbl = body.appendTable();
+    tbl.setBorderWidth(0.5);
+    var headRow = tbl.appendTableRow();
+    ["Nama Lengkap", "L/P", "Pendidikan", "Sekolah"].forEach(function (h) {
+      var c = headRow.appendTableCell(h);
+      c.editAsText().setBold(true).setItalic(false).setFontSize(9).setForegroundColor("#000000");
+    });
+    saudara.forEach(function (s) {
+      var row = tbl.appendTableRow();
+      [s.nama, s.jk, s.pendidikan, s.sekolah].forEach(function (val) {
+        row.appendTableCell(val || "-").editAsText().setBold(false).setItalic(false).setFontSize(9).setForegroundColor("#000000");
+      });
+    });
+  } else {
+    var tanpaSaudara = body.appendParagraph("Tidak ada data saudara kandung.");
+    tanpaSaudara.editAsText().setBold(false).setItalic(true).setFontSize(9).setForegroundColor("#000000");
+  }
+
+  // ---- E. Situasi Keluarga ----
+  tambahJudulBagian(body, "E. Situasi Keluarga");
+  tambahTabelLabelValue(body, [
+    ["Siswa Tinggal Bersama", d.tinggal_bersama],
+    ["Status Pernikahan Orang Tua", d.status_pernikahan],
+  ]);
+
+  // ---- F. Kontak Darurat ----
+  tambahJudulBagian(body, "F. Kontak Darurat");
+  tambahTabelLabelValue(body, [
+    ["Nama yang Dihubungi", d.darurat_nama],
+    ["Hubungan dengan Murid", d.darurat_hubungan],
+    ["Alamat", d.darurat_alamat],
+    ["No. Telp/HP", d.darurat_notelp],
+  ]);
+
+  // ---- Status ----
+  tambahJudulBagian(body, "Status Pendaftaran");
+  tambahTabelLabelValue(body, [
+    ["Status", d.status],
+    ["Tanggal Daftar", formatTanggalGs(d.timestamp)],
+  ]);
+
+  // ---- Lampiran Bukti Pembayaran (halaman baru) ----
+  body.appendPageBreak();
+  tambahJudulBagian(body, "Lampiran: Bukti Pembayaran");
+
+  if (d.bukti_bayar_url) {
+    var fileId = ekstrakDriveFileId(d.bukti_bayar_url);
+    var berhasilSisip = false;
+    if (fileId) {
+      try {
+        var file = DriveApp.getFileById(fileId);
+        var mime = file.getMimeType();
+        if (mime.indexOf("image/") === 0) {
+          var buktiPar = body.appendParagraph("");
+          buktiPar.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+          var buktiImg = buktiPar.appendInlineImage(file.getBlob());
+          var r2 = buktiImg.getHeight() / buktiImg.getWidth();
+          var lebar = 350;
+          buktiImg.setWidth(lebar);
+          buktiImg.setHeight(Math.round(lebar * r2));
+          berhasilSisip = true;
+        }
+      } catch (err) {
+        berhasilSisip = false;
+        var errMsg = err.message;
+      }
+    }
+    if (!berhasilSisip) {
+      var linkPar = body.appendParagraph("Bukti pembayaran (file bukan gambar / gagal dimuat" + (typeof errMsg !== "undefined" && errMsg ? (": " + errMsg) : "") + "). Lihat langsung di:");
+      linkPar.editAsText().setBold(false).setItalic(false).setFontSize(9).setForegroundColor("#000000");
+      var urlPar = body.appendParagraph(d.bukti_bayar_url);
+      urlPar.editAsText().setLinkUrl(d.bukti_bayar_url).setBold(false).setItalic(false).setFontSize(9);
+    }
+  } else {
+    var takAdaBukti = body.appendParagraph("Belum ada bukti pembayaran yang diupload.");
+    takAdaBukti.editAsText().setBold(false).setItalic(true).setFontSize(9).setForegroundColor("#000000");
+  }
+
+  doc.saveAndClose();
+
+  var pdfBlob = DriveApp.getFileById(doc.getId()).getAs("application/pdf");
+  var base64Pdf = Utilities.base64Encode(pdfBlob.getBytes());
+
+  // Bersihkan dokumen sementara dari Drive setelah PDF diambil
+  try { DriveApp.getFileById(doc.getId()).setTrashed(true); } catch (err) { }
+
+  var namaFile = "Formulir_PPDB_" + String(d.nama || "siswa").replace(/[^a-zA-Z0-9]+/g, "_") + ".pdf";
+  return jsonOutput({ result: "success", filename: namaFile, pdf_base64: base64Pdf });
 }

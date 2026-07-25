@@ -112,8 +112,12 @@
                             <div class="row">
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">Tahun Ajaran</label>
-                                    <input type="text" name="tahun_ajaran" class="form-control" value="2026-2027"
-                                        readonly>
+                                    <select name="tahun_ajaran" class="form-select" required>
+                                        <option value="" selected disabled>Pilih Tahun Pelajaran</option>
+                                        <option value="2026-2027">2026-2027</option>
+                                        <option value="2027-2028">2027-2028</option>
+                                        <option value="2029-2030">2029-2030</option>
+                                    </select>
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">Jenis Kelas</label>

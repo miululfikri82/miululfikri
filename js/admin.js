@@ -9,7 +9,7 @@ const ADMIN_PASSWORD = "admin1234";
 function cekPassword() {
     const input = document.getElementById("adminPassword").value;
     if (input === ADMIN_PASSWORD) {
-        document.getElementById("loginGate").style.display = "none";
+        document.getElementById("loginGate").style.setProperty("display", "none", "important");
         document.getElementById("adminContent").style.display = "block";
         sessionStorage.setItem("admin_ok", "1");
         muatPpdb();
@@ -25,7 +25,7 @@ function cekPassword() {
 // biar tidak perlu login ulang tiap reload dalam sesi yang sama
 if (sessionStorage.getItem("admin_ok") === "1") {
     document.addEventListener("DOMContentLoaded", () => {
-        document.getElementById("loginGate").style.display = "none";
+        document.getElementById("loginGate").style.setProperty("display", "none", "important");
         document.getElementById("adminContent").style.display = "block";
         muatPpdb();
         muatBerita();
@@ -71,10 +71,13 @@ function postAction(payload) {
 
 /* ============ PPDB ============ */
 function muatPpdb() {
+    const tbody = document.getElementById("ppdbTableBody");
     fetch(`${GOOGLE_SCRIPT_URL}?action=list_ppdb`)
-        .then((res) => res.json())
+        .then((res) => {
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            return res.json();
+        })
         .then((data) => {
-            const tbody = document.getElementById("ppdbTableBody");
             if (!data.length) {
                 tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Belum ada pendaftar.</td></tr>';
                 return;
@@ -87,25 +90,65 @@ function muatPpdb() {
                         <td>${d.ayah_nama || d.ibu_nama || "-"}</td>
                         <td>${d.ibu_notelp || d.ayah_notelp || "-"}</td>
                         <td>${d.bukti_bayar_url
-                                ? `<a class="btn btn-sm btn-outline-success" target="_blank" href="${d.bukti_bayar_url}"><i class="bi bi-receipt"></i> Lihat</a>`
-                                : '<span class="text-muted small">Belum ada</span>'
-                            }</td>
+                        ? `<a class="btn btn-sm btn-outline-success" target="_blank" href="${d.bukti_bayar_url}"><i class="bi bi-receipt"></i> Lihat</a>`
+                        : '<span class="text-muted small">Belum ada</span>'
+                    }</td>
                         <td><span class="badge ${d.status === "Terverifikasi" ? "bg-success" : "bg-warning text-dark"}">${d.status || "-"}</span></td>
-                        <td>
-                            ${d.status !== "Terverifikasi"
-                                ? `<button class="btn btn-sm btn-success" onclick="verifikasiPpdb('${d.id}')"><i class="bi bi-check-lg"></i> Verifikasi</button>`
-                                : `<a class="btn btn-sm btn-outline-success" target="_blank" href="https://wa.me/${(d.ibu_notelp || d.ayah_notelp || "").replace(/^0/, "62")}?text=${encodeURIComponent("Assalamu'alaikum, pendaftaran ananda " + d.nama + " sudah diverifikasi. Terima kasih.")}"><i class="bi bi-whatsapp"></i> Chat WA</a>`
-                            }
+                        <td>${d.status !== "Terverifikasi"
+                        ? `<button class="btn btn-sm btn-success" onclick="verifikasiPpdb('${d.id}')"><i class="bi bi-check-lg"></i> Verifikasi</button>`
+                        : `<div class="d-flex flex-column gap-1">
+                                        <a class="btn btn-sm btn-outline-success" target="_blank" href="https://wa.me/${String(d.ibu_notelp || d.ayah_notelp || "").replace(/^0/, "62")}?text=${encodeURIComponent("Assalamu'alaikum, pendaftaran ananda " + d.nama + " sudah diverifikasi. Terima kasih.")}"><i class="bi bi-whatsapp"></i> Chat WA</a>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="unduhPdfPpdb('${d.id}', this)"><i class="bi bi-file-earmark-pdf"></i> Unduh PDF</button>
+                                   </div>`
+                    }
                         </td>
                     </tr>
                 `)
                 .join("");
+        })
+        .catch((err) => {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Gagal memuat data: ${err.message}. Buka console (F12) untuk detail, atau pastikan URL Web App masih benar & sudah di-deploy ulang.</td></tr>`;
         });
 }
 
 function verifikasiPpdb(id) {
     if (!confirm("Verifikasi pendaftar ini?")) return;
     postAction({ action: "verify_ppdb", id: id }).then(() => muatPpdb());
+}
+
+function unduhPdfPpdb(id, btn) {
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Membuat PDF...';
+
+    fetch(`${GOOGLE_SCRIPT_URL}?action=download_ppdb_pdf&id=${encodeURIComponent(id)}`)
+        .then((res) => res.json())
+        .then((data) => {
+            if (!data || data.result !== "success") {
+                alert("Gagal membuat PDF: " + ((data && data.message) || "Terjadi kesalahan, coba lagi."));
+                return;
+            }
+            const byteChars = atob(data.pdf_base64);
+            const byteNumbers = new Array(byteChars.length);
+            for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: "application/pdf" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = data.filename || "formulir_ppdb.pdf";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        })
+        .catch(() => {
+            alert("Gagal mengunduh PDF. Periksa koneksi internet lalu coba lagi.");
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        });
 }
 
 /* ============ BERITA ============ */
