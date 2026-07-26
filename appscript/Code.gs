@@ -58,22 +58,139 @@ function ensureColumns(sh, headers) {
   return currentHeaders;
 }
 
-// Simpan file bukti pembayaran (base64) ke Google Drive dan kembalikan URL-nya.
-// Jika tidak ada file (base64 kosong), kembalikan string kosong.
-function saveBuktiBayar(base64, filename, mime) {
+// Simpan file (base64) ke folder tertentu di Google Drive dan kembalikan URL-nya.
+// Dipakai untuk bukti pembayaran maupun gambar berita. Kalau tidak ada file
+// (base64 kosong), kembalikan string kosong.
+function simpanFileKeDrive(folderName, base64, filename, mime) {
   if (!base64) return "";
   try {
-    var folderName = "Bukti Pembayaran PPDB";
     var folders = DriveApp.getFoldersByName(folderName);
     var folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(folderName);
     var bytes = Utilities.base64Decode(base64);
-    var blob = Utilities.newBlob(bytes, mime || "application/octet-stream", filename || ("bukti_bayar_" + new Date().getTime()));
+    var blob = Utilities.newBlob(bytes, mime || "application/octet-stream", filename || (folderName + "_" + new Date().getTime()));
     var file = folder.createFile(blob);
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
     return file.getUrl();
   } catch (err) {
     return "";
   }
+}
+
+function saveBuktiBayar(base64, filename, mime) {
+  return simpanFileKeDrive("Bukti Pembayaran PPDB", base64, filename, mime);
+}
+
+function simpanGambarBerita(base64, filename, mime) {
+  return simpanFileKeDrive("Gambar Berita Website", base64, filename, mime);
+}
+
+/* ============ PENGATURAN PENDAFTARAN (key-value di sheet "Pengaturan") ============ */
+
+var PENGATURAN_DEFAULT = {
+  tahun_ajaran_aktif: "2026-2027",
+  status_ppdb: "Buka",
+  kuota_reguler: 30,
+  kuota_intensif: 30,
+  kuota_offline_reguler: 0,
+  kuota_offline_intensif: 0,
+  gelombang_list: JSON.stringify([
+    { nama: "Gelombang I", periode: "Januari - Maret", aktif: true },
+    { nama: "Gelombang II", periode: "April - Juni", aktif: true }
+  ])
+};
+
+// Parse string JSON gelombang_list dari Pengaturan menjadi array object yang aman
+// dipakai (kalau kosong/rusak, kembalikan array kosong bukan error).
+function parseGelombangList(raw) {
+  try {
+    var list = JSON.parse(raw || "[]");
+    if (!Array.isArray(list)) return [];
+    return list.map(function (g) {
+      return {
+        nama: String(g.nama || "").trim(),
+        periode: String(g.periode || "").trim(),
+        aktif: g.aktif !== false
+      };
+    }).filter(function (g) { return g.nama; });
+  } catch (err) {
+    return [];
+  }
+}
+
+function getPengaturan() {
+  var sh = sheet("Pengaturan");
+  if (sh.getLastRow() === 0) {
+    sh.appendRow(["key", "value"]);
+  }
+  var values = sh.getDataRange().getValues();
+  var hasil = {};
+  for (var i = 1; i < values.length; i++) {
+    if (values[i][0]) hasil[values[i][0]] = values[i][1];
+  }
+  // isi nilai default untuk key yang belum pernah diset
+  Object.keys(PENGATURAN_DEFAULT).forEach(function (k) {
+    if (!(k in hasil) || hasil[k] === "") hasil[k] = PENGATURAN_DEFAULT[k];
+  });
+  return hasil;
+}
+
+function setPengaturan(data) {
+  var sh = sheet("Pengaturan");
+  if (sh.getLastRow() === 0) {
+    sh.appendRow(["key", "value"]);
+  }
+  var values = sh.getDataRange().getValues();
+  var keys = Object.keys(PENGATURAN_DEFAULT);
+  keys.forEach(function (key) {
+    if (!(key in data)) return;
+    var rowIndex = -1;
+    for (var i = 1; i < values.length; i++) {
+      if (values[i][0] === key) { rowIndex = i + 1; break; }
+    }
+    if (rowIndex === -1) {
+      sh.appendRow([key, data[key]]);
+      values.push([key, data[key]]);
+    } else {
+      sh.getRange(rowIndex, 2).setValue(data[key]);
+    }
+  });
+  return getPengaturan();
+}
+
+// Gabungkan pengaturan tersimpan + hitungan pendaftar online per kelas,
+// dipakai baik oleh admin panel maupun halaman PPDB publik.
+function getPengaturanLengkap() {
+  var p = getPengaturan();
+  var data = sheetToObjects(sheet("Pendaftaran"));
+  var onlineReguler = data.filter(function (d) { return d.kelas_pilihan === "Reguler"; }).length;
+  var onlineIntensif = data.filter(function (d) { return d.kelas_pilihan === "Intensif"; }).length;
+  var offlineReguler = Number(p.kuota_offline_reguler) || 0;
+  var offlineIntensif = Number(p.kuota_offline_intensif) || 0;
+
+  return {
+    tahun_ajaran_aktif: p.tahun_ajaran_aktif,
+    status_ppdb: p.status_ppdb,
+    gelombang_list: parseGelombangList(p.gelombang_list),
+    kelas: {
+      Reguler: {
+        kuota: Number(p.kuota_reguler) || 0,
+        online: onlineReguler,
+        offline: offlineReguler,
+        terisi: onlineReguler + offlineReguler
+      },
+      Intensif: {
+        kuota: Number(p.kuota_intensif) || 0,
+        online: onlineIntensif,
+        offline: offlineIntensif,
+        terisi: onlineIntensif + offlineIntensif
+      }
+    },
+    // dipertahankan untuk kompatibilitas dengan tampilan lama
+    kuota_offline_reguler: offlineReguler,
+    kuota_offline_intensif: offlineIntensif,
+    kuota_reguler: Number(p.kuota_reguler) || 0,
+    kuota_intensif: Number(p.kuota_intensif) || 0
+  };
 }
 
 /* ================= doGet: untuk membaca data (publik & admin) ================= */
@@ -102,6 +219,9 @@ function doGet(e) {
   }
   if (action === "download_ppdb_pdf") {
     return downloadPpdbPdf(e.parameter.id);
+  }
+  if (action === "get_pengaturan") {
+    return jsonOutput(getPengaturanLengkap());
   }
 
   return ContentService.createTextOutput("Script aktif. Gunakan parameter ?action=").setMimeType(ContentService.MimeType.TEXT);
@@ -161,11 +281,29 @@ function doPost(e) {
   if (action === "delete_persyaratan") {
     return deleteRow("Persyaratan", body.id);
   }
+  if (action === "update_pengaturan") {
+    return jsonOutput({ result: "success", data: setPengaturan(body) });
+  }
 
   return jsonOutput({ result: "error", message: "Aksi tidak dikenali" });
 }
 
 function submitPpdb(p) {
+  // Validasi server-side: tolak kalau PPDB sedang ditutup atau kuota kelas
+  // yang dipilih sudah penuh (supaya tidak bisa ditembus langsung lewat API).
+  var pengaturan = getPengaturanLengkap();
+  if (pengaturan.status_ppdb !== "Buka") {
+    return jsonOutput({ result: "error", message: "Pendaftaran PPDB sedang ditutup." });
+  }
+  var infoKelas = pengaturan.kelas[p.kelas_pilihan];
+  if (infoKelas && infoKelas.kuota > 0 && infoKelas.terisi >= infoKelas.kuota) {
+    return jsonOutput({ result: "error", message: "Mohon maaf, kuota untuk kelas " + p.kelas_pilihan + " sudah penuh." });
+  }
+  var gelombangAktif = pengaturan.gelombang_list.filter(function (g) { return g.aktif; }).map(function (g) { return g.nama; });
+  if (gelombangAktif.length && gelombangAktif.indexOf(p.gelombang) === -1) {
+    return jsonOutput({ result: "error", message: "Gelombang pendaftaran yang dipilih tidak valid atau sudah tidak aktif." });
+  }
+
   var sh = sheet("Pendaftaran");
   var headers = ["id", "timestamp", "tahun_ajaran", "kelas_pilihan", "gelombang", "nama", "panggilan", "jk",
     "tempat_lahir", "tanggal_lahir", "anak_ke", "saudara_kandung_jml", "saudara_tiri_jml", "tinggal_dengan",
@@ -220,8 +358,13 @@ function addBerita(body) {
     sh.appendRow(["id", "tanggal", "judul", "isi", "gambar_url"]);
   }
   var id = Utilities.getUuid();
-  sh.appendRow([id, body.tanggal || new Date(), body.judul, body.isi, body.gambar_url || ""]);
-  return jsonOutput({ result: "success", id: id });
+  var gambarUrl = body.gambar_url || "";
+  if (body.gambar_base64) {
+    var urlUpload = simpanGambarBerita(body.gambar_base64, body.gambar_nama, body.gambar_mime);
+    if (urlUpload) gambarUrl = urlUpload;
+  }
+  sh.appendRow([id, body.tanggal || new Date(), body.judul, body.isi, gambarUrl]);
+  return jsonOutput({ result: "success", id: id, gambar_url: gambarUrl });
 }
 
 function addPengumuman(body) {

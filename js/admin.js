@@ -4,11 +4,14 @@ ADMIN PANEL - MI ULUL FIKRI
 
 // GANTI URL & PASSWORD INI
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxjedZtAtzXnoxqAQ7y4KY8gKa5BjH3cfPMa_otQajEE02gKADm0poUIvA3R1Wol86sXw/exec";
-const ADMIN_PASSWORD = "admin1234";
+const ADMIN_PASSWORD = "web-miyufi_82";
 
 function cekPassword() {
     const input = document.getElementById("adminPassword").value;
     if (input === ADMIN_PASSWORD) {
+        // pakai setProperty(...,"important") karena loginGate punya class
+        // Bootstrap "d-flex" yang menerapkan display:flex !important, sehingga
+        // style.display biasa tidak cukup kuat untuk menyembunyikannya.
         document.getElementById("loginGate").style.setProperty("display", "none", "important");
         document.getElementById("adminContent").style.display = "block";
         sessionStorage.setItem("admin_ok", "1");
@@ -17,6 +20,7 @@ function cekPassword() {
         muatPengumuman();
         muatBiaya();
         muatPersyaratan();
+        muatPengaturanUmum();
     } else {
         document.getElementById("loginError").textContent = "Password salah.";
     }
@@ -32,6 +36,7 @@ if (sessionStorage.getItem("admin_ok") === "1") {
         muatPengumuman();
         muatBiaya();
         muatPersyaratan();
+        muatPengaturanUmum();
     });
 }
 
@@ -122,8 +127,17 @@ function unduhPdfPpdb(id, btn) {
     btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Membuat PDF...';
 
     fetch(`${GOOGLE_SCRIPT_URL}?action=download_ppdb_pdf&id=${encodeURIComponent(id)}`)
-        .then((res) => res.json())
-        .then((data) => {
+        .then((res) => {
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            return res.text();
+        })
+        .then((text) => {
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                throw new Error("Respons server bukan JSON (kemungkinan izin DocumentApp/Drive belum di-otorisasi, atau ada error di skrip). Detail: " + text.slice(0, 200));
+            }
             if (!data || data.result !== "success") {
                 alert("Gagal membuat PDF: " + ((data && data.message) || "Terjadi kesalahan, coba lagi."));
                 return;
@@ -142,8 +156,8 @@ function unduhPdfPpdb(id, btn) {
             a.remove();
             URL.revokeObjectURL(url);
         })
-        .catch(() => {
-            alert("Gagal mengunduh PDF. Periksa koneksi internet lalu coba lagi.");
+        .catch((err) => {
+            alert("Gagal mengunduh PDF.\n\n" + err.message);
         })
         .finally(() => {
             btn.disabled = false;
@@ -152,6 +166,22 @@ function unduhPdfPpdb(id, btn) {
 }
 
 /* ============ BERITA ============ */
+// Ubah link share Google Drive jadi link gambar langsung (sama seperti di js/content.js)
+function ubahLinkGambarAdmin(url) {
+    if (!url) return url;
+    url = url.trim();
+    if (!url.includes("drive.google.com")) return url;
+    let fileId = null;
+    let m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (m) fileId = m[1];
+    if (!fileId) {
+        m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+        if (m) fileId = m[1];
+    }
+    if (!fileId) return url;
+    return `https://lh3.googleusercontent.com/d/${fileId}=w200`;
+}
+
 function muatBerita() {
     fetch(`${GOOGLE_SCRIPT_URL}?action=list_berita`)
         .then((res) => res.json())
@@ -164,7 +194,11 @@ function muatBerita() {
             list.innerHTML = data
                 .map((d) => `
                     <div class="d-flex justify-content-between align-items-start border-bottom py-2">
-                        <div>
+                        ${d.gambar_url
+                        ? `<img src="${ubahLinkGambarAdmin(d.gambar_url)}" style="width:70px;height:50px;object-fit:cover;border-radius:6px;" class="me-3" onerror="this.style.display='none';">`
+                        : ""
+                    }
+                        <div class="flex-grow-1">
                             <small class="text-success">${d.tanggal || ""}</small>
                             <h6 class="mb-1">${d.judul}</h6>
                             <p class="small mb-0">${d.isi}</p>
@@ -176,19 +210,70 @@ function muatBerita() {
         });
 }
 
+// Baca file gambar sebagai base64 (tanpa prefix "data:...;base64,")
+function bacaFileBase64Admin(file) {
+    return new Promise((resolve, reject) => {
+        if (!file) { resolve(""); return; }
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(",")[1] || "");
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+document.getElementById("beritaGambarFile")?.addEventListener("change", function () {
+    const preview = document.getElementById("beritaGambarPreview");
+    if (!preview) return;
+    if (this.files && this.files[0]) {
+        const f = this.files[0];
+        if (f.size > 5 * 1024 * 1024) {
+            preview.className = "small text-danger mt-1";
+            preview.textContent = "Ukuran gambar terlalu besar, maksimal 5MB.";
+            this.value = "";
+            return;
+        }
+        preview.className = "small text-success mt-1";
+        preview.textContent = `Gambar dipilih: ${f.name} (${(f.size / 1024).toFixed(0)} KB)`;
+    } else {
+        preview.textContent = "";
+    }
+});
+
 document.getElementById("formBerita")?.addEventListener("submit", function (e) {
     e.preventDefault();
-    const data = new FormData(this);
-    postAction({
-        action: "add_berita",
-        tanggal: data.get("tanggal"),
-        judul: data.get("judul"),
-        isi: data.get("isi"),
-        gambar_url: data.get("gambar_url"),
-    }).then(() => {
-        this.reset();
-        muatBerita();
-    });
+    const form = this;
+    const data = new FormData(form);
+    const fileInput = document.getElementById("beritaGambarFile");
+    const file = fileInput && fileInput.files && fileInput.files[0];
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalHtml = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Menyimpan...';
+
+    bacaFileBase64Admin(file)
+        .then((base64) => {
+            return postAction({
+                action: "add_berita",
+                tanggal: data.get("tanggal"),
+                judul: data.get("judul"),
+                isi: data.get("isi"),
+                gambar_base64: base64,
+                gambar_nama: file ? file.name : "",
+                gambar_mime: file ? file.type : "",
+            });
+        })
+        .then(() => {
+            form.reset();
+            document.getElementById("beritaGambarPreview").textContent = "";
+            muatBerita();
+        })
+        .catch(() => {
+            alert("Gagal menyimpan berita. Coba lagi.");
+        })
+        .finally(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalHtml;
+        });
 });
 
 function hapusBerita(id) {
@@ -467,4 +552,129 @@ document.getElementById("formPersyaratan")?.addEventListener("submit", function 
 function hapusPersyaratan(id) {
     if (!confirm("Hapus data persyaratan ini?")) return;
     postAction({ action: "delete_persyaratan", id: id }).then(() => muatPersyaratan());
+}
+
+/* ============ PENGATURAN UMUM PPDB (tahun ajaran, status, kuota, gelombang) ============ */
+
+// Cache gelombang aktif terakhir (dipakai untuk mengisi select "Gelombang" di form Biaya)
+let gelombangListCache = [];
+
+function baris_Gelombang(nama = "", periode = "", aktif = true) {
+    const div = document.createElement("div");
+    div.className = "row g-2 mb-2 align-items-center gelombang-row";
+    div.innerHTML = `
+        <div class="col-md-4">
+            <input type="text" class="form-control form-control-sm gel-nama" placeholder="Nama, contoh: Gelombang I" value="${nama}">
+        </div>
+        <div class="col-md-5">
+            <input type="text" class="form-control form-control-sm gel-periode" placeholder="Periode (opsional), contoh: Januari - Maret" value="${periode}">
+        </div>
+        <div class="col-md-2 form-check ms-1">
+            <input type="checkbox" class="form-check-input gel-aktif" ${aktif ? "checked" : ""}>
+            <label class="form-check-label small">Aktif</label>
+        </div>
+        <div class="col-md-1 d-grid">
+            <button type="button" class="btn btn-sm btn-outline-danger btn-hapus-gelombang"><i class="bi bi-x"></i></button>
+        </div>
+    `;
+    div.querySelector(".btn-hapus-gelombang").addEventListener("click", () => div.remove());
+    return div;
+}
+
+document.getElementById("btnTambahGelombang")?.addEventListener("click", () => {
+    document.getElementById("gelombangRows").appendChild(baris_Gelombang());
+});
+
+function renderGelombangRows(list) {
+    const rows = document.getElementById("gelombangRows");
+    if (!rows) return;
+    rows.innerHTML = "";
+    (list && list.length ? list : [{ nama: "", periode: "", aktif: true }]).forEach((g) => {
+        rows.appendChild(baris_Gelombang(g.nama, g.periode, g.aktif));
+    });
+}
+
+function ambilGelombangDariForm() {
+    const list = [];
+    document.querySelectorAll("#gelombangRows .gelombang-row").forEach((row) => {
+        const nama = row.querySelector(".gel-nama").value.trim();
+        const periode = row.querySelector(".gel-periode").value.trim();
+        const aktif = row.querySelector(".gel-aktif").checked;
+        if (nama) list.push({ nama, periode, aktif });
+    });
+    return list;
+}
+
+// Isi ulang select "Gelombang" di form Rincian Biaya Masuk dari daftar gelombang
+// yang tersimpan di Pengaturan (semua gelombang ditampilkan, aktif maupun tidak,
+// supaya paket biaya lama untuk gelombang nonaktif tetap bisa diedit).
+function renderBiayaGelombangSelect(list) {
+    const select = document.getElementById("biayaGelombangSelect");
+    if (!select) return;
+    const nilaiTerpilih = select.value;
+    select.innerHTML = '<option value="">-- Pilih Gelombang --</option>' +
+        (list || []).map((g) => `<option value="${g.nama}">${g.nama}${g.aktif ? "" : " (nonaktif)"}</option>`).join("");
+    if (nilaiTerpilih) select.value = nilaiTerpilih;
+}
+
+function muatPengaturanUmum() {
+    fetch(`${GOOGLE_SCRIPT_URL}?action=get_pengaturan`)
+        .then((res) => {
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            return res.json();
+        })
+        .then((data) => {
+            document.getElementById("pengaturanTahunAjaran").value = data.tahun_ajaran_aktif || "";
+            document.getElementById("pengaturanStatusPpdb").value = data.status_ppdb || "Buka";
+
+            document.getElementById("kuotaReguler").value = data.kelas.Reguler.kuota;
+            document.getElementById("kuotaOfflineReguler").value = data.kelas.Reguler.offline;
+            document.getElementById("infoOnlineReguler").textContent = data.kelas.Reguler.online;
+
+            document.getElementById("kuotaIntensif").value = data.kelas.Intensif.kuota;
+            document.getElementById("kuotaOfflineIntensif").value = data.kelas.Intensif.offline;
+            document.getElementById("infoOnlineIntensif").textContent = data.kelas.Intensif.online;
+
+            gelombangListCache = data.gelombang_list || [];
+            renderGelombangRows(gelombangListCache);
+            renderBiayaGelombangSelect(gelombangListCache);
+        })
+        .catch((err) => {
+            const statusEl = document.getElementById("pengaturanUmumStatus");
+            if (statusEl) statusEl.innerHTML = `<span class="text-danger">Gagal memuat pengaturan: ${err.message}</span>`;
+        });
+}
+
+function simpanPengaturanUmum(btn) {
+    const statusEl = document.getElementById("pengaturanUmumStatus");
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Menyimpan...';
+    statusEl.innerHTML = "";
+
+    postAction({
+        action: "update_pengaturan",
+        tahun_ajaran_aktif: document.getElementById("pengaturanTahunAjaran").value,
+        status_ppdb: document.getElementById("pengaturanStatusPpdb").value,
+        kuota_reguler: Number(document.getElementById("kuotaReguler").value) || 0,
+        kuota_offline_reguler: Number(document.getElementById("kuotaOfflineReguler").value) || 0,
+        kuota_intensif: Number(document.getElementById("kuotaIntensif").value) || 0,
+        kuota_offline_intensif: Number(document.getElementById("kuotaOfflineIntensif").value) || 0,
+        gelombang_list: JSON.stringify(ambilGelombangDariForm()),
+    })
+        .then((res) => {
+            if (res && res.result === "success") {
+                statusEl.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill"></i> Tersimpan.</span>';
+                muatPengaturanUmum();
+            } else {
+                statusEl.innerHTML = `<span class="text-danger">Gagal: ${(res && res.message) || "Terjadi kesalahan."}</span>`;
+            }
+        })
+        .catch((err) => {
+            statusEl.innerHTML = `<span class="text-danger">Gagal menyimpan: ${err.message}</span>`;
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        });
 }

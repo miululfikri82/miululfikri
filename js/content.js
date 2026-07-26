@@ -16,12 +16,34 @@ function formatTanggal(str) {
     }
 }
 
+// Ubah link share Google Drive (format apa pun: /file/d/ID/view, ?id=ID, dst)
+// jadi link gambar langsung yang bisa dipakai di <img src="...">.
+// Kalau bukan link Drive, dikembalikan apa adanya (misal link gambar dari host lain).
+function ubahLinkGambar(url) {
+    if (!url) return url;
+    url = url.trim();
+    if (!url.includes("drive.google.com")) return url;
+
+    let fileId = null;
+    let m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (m) fileId = m[1];
+    if (!fileId) {
+        m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+        if (m) fileId = m[1];
+    }
+    if (!fileId) return url;
+
+    return `https://lh3.googleusercontent.com/d/${fileId}=w1000`;
+}
+
 function renderBeritaCard(d) {
-    const gambar = d.gambar_url && d.gambar_url.trim() ? d.gambar_url : "assets/img/gallery1.jpg";
+    const gambarAsli = d.gambar_url && d.gambar_url.trim() ? d.gambar_url : "assets/img/gallery1.jpg";
+    const gambar = ubahLinkGambar(gambarAsli);
     return `
         <div class="col-lg-4">
             <div class="card border-0 shadow h-100">
-                <img src="${gambar}" class="card-img-top" style="height:220px;object-fit:cover;">
+                <img src="${gambar}" class="card-img-top" style="height:220px;object-fit:cover;"
+                    onerror="this.onerror=null;this.src='assets/img/gallery1.jpg';">
                 <div class="card-body">
                     <small class="text-success">${formatTanggal(d.tanggal)}</small>
                     <h5 class="mt-2">${d.judul}</h5>
@@ -44,6 +66,41 @@ function renderPengumumanCard(d) {
             </div>
         </div>
     `;
+}
+
+// Versi ringkas untuk section "Pengumuman" di beranda (gaya list-group, bukan card)
+function renderPengumumanListItem(d) {
+    return `
+        <a href="pengumuman.html" class="list-group-item list-group-item-action">
+            <i class="bi bi-calendar-event text-success me-2"></i>
+            ${d.judul}
+            <span class="float-end">${formatTanggal(d.tanggal)}</span>
+        </a>
+    `;
+}
+
+function muatPengumumanHome(containerId, jumlah) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (CONTENT_SCRIPT_URL.includes("PASTE_URL")) {
+        container.innerHTML = '<div class="list-group-item text-muted">Belum terhubung ke Google Sheet.</div>';
+        return;
+    }
+
+    fetch(`${CONTENT_SCRIPT_URL}?action=list_pengumuman`)
+        .then((res) => res.json())
+        .then((data) => {
+            if (!data.length) {
+                container.innerHTML = '<div class="list-group-item text-muted">Belum ada pengumuman.</div>';
+                return;
+            }
+            const items = jumlah ? data.slice(0, jumlah) : data;
+            container.innerHTML = items.map(renderPengumumanListItem).join("");
+        })
+        .catch(() => {
+            container.innerHTML = '<div class="list-group-item text-danger">Gagal memuat pengumuman.</div>';
+        });
 }
 
 function muatBeritaPublik(containerId, jumlah) {

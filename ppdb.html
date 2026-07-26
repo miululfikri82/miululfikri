@@ -19,7 +19,7 @@
             <div class="row align-items-center">
                 <div class="col-lg-6"><span><i class="bi bi-award-fill"></i> Madrasah Hebat Bermartabat</span></div>
                 <div class="col-lg-6 text-end d-none d-lg-block">
-                    <span class="me-4"><i class="bi bi-telephone-fill"></i> +62895375689961</span>
+                    <span class="me-4"><i class="bi bi-telephone-fill"></i> +62 831 3873 5745</span>
                     <span class="me-4"><i class="bi bi-envelope-fill"></i> miululfikri82@gmail.com</span>
                 </div>
             </div>
@@ -61,16 +61,48 @@
         <div class="container">
 
             <div class="text-center mb-5">
-                <span class="badge bg-warning text-dark mb-2">PPDB 2026/2027</span>
+                <span class="badge bg-warning text-dark mb-2" id="badgeTahunAjaran">PPDB 2026/2027</span>
                 <h2 class="fw-bold">Formulir Pendaftaran Peserta Didik Baru</h2>
                 <p class="text-muted">Isi data dengan benar dan lengkap. Setelah submit, kamu akan diarahkan ke
                     WhatsApp admin untuk konfirmasi lebih lanjut.</p>
             </div>
 
-            <div class="text-center mb-4" id="rekapKuota" style="display:none;">
-                <span class="badge bg-success fs-6 px-3 py-2">
-                    <i class="bi bi-people-fill"></i> <span id="rekapText">Memuat rekap pendaftar...</span>
-                </span>
+            <!-- ===== INFO KUOTA PER KELAS (dimuat dinamis dari admin) ===== -->
+            <div class="row justify-content-center mb-5" id="infoKuotaWrapper" style="display:none;">
+                <div class="col-lg-9">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="contact-card h-100 text-center">
+                                <h6 class="fw-bold mb-2">Kuota Kelas Reguler</h6>
+                                <div class="progress mb-2" style="height:10px;">
+                                    <div id="progressReguler" class="progress-bar bg-success" style="width:0%"></div>
+                                </div>
+                                <div class="small" id="teksKuotaReguler">Memuat...</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="contact-card h-100 text-center">
+                                <h6 class="fw-bold mb-2">Kuota Kelas Intensif</h6>
+                                <div class="progress mb-2" style="height:10px;">
+                                    <div id="progressIntensif" class="progress-bar bg-success" style="width:0%"></div>
+                                </div>
+                                <div class="small" id="teksKuotaIntensif">Memuat...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== NOTICE PPDB DITUTUP (tampil kalau status_ppdb = Tutup) ===== -->
+            <div class="row justify-content-center mb-5" id="ppdbTutupNotice" style="display:none;">
+                <div class="col-lg-9">
+                    <div class="contact-card text-center py-5">
+                        <i class="bi bi-door-closed-fill text-danger" style="font-size:3rem;"></i>
+                        <h4 class="fw-bold mt-3 mb-2">Pendaftaran PPDB Ditutup</h4>
+                        <p class="text-muted mb-0" id="teksAlasanTutup">Kuota pendaftaran sudah terpenuhi. Terima
+                            kasih atas antusiasmenya.</p>
+                    </div>
+                </div>
             </div>
 
             <!-- ===== INFO PERSYARATAN & RINCIAN BIAYA (dimuat dinamis dari admin) ===== -->
@@ -99,7 +131,7 @@
                 </div>
             </div>
 
-            <div class="row justify-content-center">
+            <div class="row justify-content-center" id="ppdbFormWrapper">
                 <div class="col-lg-9">
                     <div class="contact-card">
 
@@ -112,28 +144,23 @@
                             <div class="row">
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">Tahun Ajaran</label>
-                                    <select name="tahun_ajaran" class="form-select" required>
-                                        <option value="" selected disabled>Pilih Tahun Pelajaran</option>
-                                        <option value="2026-2027">2026-2027</option>
-                                        <option value="2027-2028">2027-2028</option>
-                                        <option value="2029-2030">2029-2030</option>
-                                    </select>
+                                    <input type="text" name="tahun_ajaran" class="form-control" value="2026-2027"
+                                        readonly>
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">Jenis Kelas</label>
                                     <select name="kelas_pilihan" id="kelasPilihan" class="form-select" required>
                                         <option value="" selected disabled>Pilih jenis kelas</option>
-                                        <option value="Reguler">Kelas Reguler (Gratis/Free SPP)</option>
-                                        <option value="Intensif">Kelas Intensif (Ber-AC, Berbayar)</option>
+                                        <option value="Reguler" id="opsiKelasReguler">Kelas Reguler (Gratis/Free SPP)
+                                        </option>
+                                        <option value="Intensif" id="opsiKelasIntensif">Kelas Intensif (Ber-AC,
+                                            Berbayar)</option>
                                     </select>
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">Gelombang</label>
                                     <select name="gelombang" id="gelombangPilihan" class="form-select" required>
                                         <option value="" selected disabled>Pilih gelombang</option>
-                                        <option value="Gelombang I (Januari-Maret)">Gelombang I (Januari - Maret)
-                                        </option>
-                                        <option value="Gelombang II (April-Juni)">Gelombang II (April - Juni)</option>
                                     </select>
                                 </div>
                             </div>
@@ -147,29 +174,29 @@
                                 <div class="row g-3">
                                     <div class="col-md-4">
                                         <div class="border rounded-3 p-3 h-100">
-                                            <div class="fw-bold text-success mb-1">NAMA BANK 1</div>
+                                            <div class="fw-bold text-success mb-1">BANK BNI</div>
                                             <div class="small text-muted">No. Rekening</div>
-                                            <div class="fw-semibold">0000000000</div>
+                                            <div class="fw-semibold">0227-1162-03</div>
                                             <div class="small text-muted mt-1">Atas Nama</div>
-                                            <div class="fw-semibold">Nama Pemilik Rekening</div>
+                                            <div class="fw-semibold">YUPI DESFINA</div>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="border rounded-3 p-3 h-100">
-                                            <div class="fw-bold text-success mb-1">NAMA BANK 2</div>
+                                            <div class="fw-bold text-success mb-1">BANK BSI</div>
                                             <div class="small text-muted">No. Rekening</div>
-                                            <div class="fw-semibold">0000000000</div>
+                                            <div class="fw-semibold">7124-9931-85</div>
                                             <div class="small text-muted mt-1">Atas Nama</div>
-                                            <div class="fw-semibold">Nama Pemilik Rekening</div>
+                                            <div class="fw-semibold">YUPI DESFINA</div>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="border rounded-3 p-3 h-100">
-                                            <div class="fw-bold text-success mb-1">NAMA BANK 3</div>
+                                            <div class="fw-bold text-success mb-1">DANA (E-WALET)</div>
                                             <div class="small text-muted">No. Rekening</div>
-                                            <div class="fw-semibold">0000000000</div>
+                                            <div class="fw-semibold">082125897551</div>
                                             <div class="small text-muted mt-1">Atas Nama</div>
-                                            <div class="fw-semibold">Nama Pemilik Rekening</div>
+                                            <div class="fw-semibold">Yupi De****a, Ss</div>
                                         </div>
                                     </div>
                                 </div>
@@ -301,7 +328,8 @@
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">No. Telp/HP</label>
-                                    <input type="tel" name="ayah_notelp" class="form-control">
+                                    <input type="tel" name="ayah_notelp" class="form-control"
+                                        placeholder="Contoh : 62895375689961">
                                 </div>
                             </div>
 
@@ -340,7 +368,8 @@
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">No. Telp/HP</label>
-                                    <input type="tel" name="ibu_notelp" class="form-control" required>
+                                    <input type="tel" name="ibu_notelp" class="form-control"
+                                        placeholder="Contoh: 62892100002" required>
                                 </div>
                             </div>
 
@@ -380,7 +409,8 @@
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">No. Telp/HP</label>
-                                    <input type="tel" name="wali_notelp" class="form-control">
+                                    <input type="tel" name="wali_notelp" class="form-control"
+                                        placeholder="contoh: 6212345678">
                                 </div>
                                 <div class="col-12 mb-3">
                                     <label class="form-label">Alamat</label>
@@ -463,7 +493,8 @@
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">No. Telp/HP</label>
-                                    <input type="tel" name="darurat_notelp" class="form-control">
+                                    <input type="tel" name="darurat_notelp" class="form-control"
+                                        placeholder="Contoh:62895213123">
                                 </div>
                             </div>
 

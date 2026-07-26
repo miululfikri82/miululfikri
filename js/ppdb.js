@@ -9,7 +9,7 @@ rekap kuota, tabel saudara kandung, dan submit form
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxjedZtAtzXnoxqAQ7y4KY8gKa5BjH3cfPMa_otQajEE02gKADm0poUIvA3R1Wol86sXw/exec";
 
 // GANTI dengan nomor WhatsApp admin PPDB (format: kode negara tanpa "+", contoh 62812xxxxxxx)
-const ADMIN_WA_NUMBER = "62895375689961";
+const ADMIN_WA_NUMBER = "6283138735745";
 
 function formatRupiah(angka) {
     const n = Number(angka) || 0;
@@ -25,18 +25,92 @@ function postAction(payload) {
     }).then((res) => res.json());
 }
 
-/* ============ REKAP KUOTA ============ */
-function muatRekapKuota() {
-    fetch(`${GOOGLE_SCRIPT_URL}?action=rekap_kuota`)
+/* ============ PENGATURAN PUBLIK: TAHUN AJARAN, STATUS BUKA/TUTUP, KUOTA ============ */
+let pengaturanCache = null;
+
+function muatPengaturanPublik() {
+    return fetch(`${GOOGLE_SCRIPT_URL}?action=get_pengaturan`)
         .then((res) => res.json())
         .then((data) => {
-            const el = document.getElementById("rekapKuota");
-            const text = document.getElementById("rekapText");
-            if (!el || !text) return;
-            text.textContent = `${data.total_pendaftar || 0} pendaftar, ${data.terverifikasi || 0} terverifikasi`;
-            el.style.display = "block";
+            pengaturanCache = data;
+            terapkanPengaturanPublik(data);
+            return data;
         })
         .catch(() => { });
+}
+
+function terapkanPengaturanPublik(data) {
+    if (!data) return;
+
+    // Tahun ajaran: sinkron ke badge judul & input hidden di form
+    const badge = document.getElementById("badgeTahunAjaran");
+    if (badge) badge.textContent = `PPDB ${data.tahun_ajaran_aktif || ""}`;
+    const inputTahun = document.querySelector('input[name="tahun_ajaran"]');
+    if (inputTahun) inputTahun.value = data.tahun_ajaran_aktif || "";
+
+    // Isi pilihan Gelombang sesuai pengaturan admin (hanya yang berstatus aktif)
+    isiOpsiGelombang(data.gelombang_list || []);
+
+    // Info kuota per kelas
+    tampilkanKuotaKelas("Reguler", data.kelas.Reguler);
+    tampilkanKuotaKelas("Intensif", data.kelas.Intensif);
+    document.getElementById("infoKuotaWrapper").style.display = "flex";
+
+    // Nonaktifkan opsi kelas yang kuotanya sudah penuh
+    aturOpsiKelasPenuh("opsiKelasReguler", data.kelas.Reguler);
+    aturOpsiKelasPenuh("opsiKelasIntensif", data.kelas.Intensif);
+
+    // Status buka/tutup PPDB
+    const formWrapper = document.getElementById("ppdbFormWrapper");
+    const tutupNotice = document.getElementById("ppdbTutupNotice");
+    if (data.status_ppdb !== "Buka") {
+        if (formWrapper) formWrapper.style.display = "none";
+        if (tutupNotice) tutupNotice.style.display = "flex";
+    } else {
+        if (formWrapper) formWrapper.style.display = "flex";
+        if (tutupNotice) tutupNotice.style.display = "none";
+    }
+}
+
+// Isi <select name="gelombang"> dari daftar gelombang yang diatur admin.
+// Hanya gelombang berstatus aktif yang ditampilkan sebagai pilihan.
+function isiOpsiGelombang(gelombangList) {
+    const sel = document.getElementById("gelombangPilihan");
+    if (!sel) return;
+    const nilaiTerpilih = sel.value;
+    const aktifSaja = gelombangList.filter((g) => g.aktif);
+    sel.innerHTML = '<option value="" selected disabled>Pilih gelombang</option>' +
+        aktifSaja
+            .map((g) => `<option value="${g.nama}">${g.nama}${g.periode ? ` (${g.periode})` : ""}</option>`)
+            .join("");
+    if (aktifSaja.some((g) => g.nama === nilaiTerpilih)) sel.value = nilaiTerpilih;
+}
+
+function tampilkanKuotaKelas(nama, info) {
+    if (!info) return;
+    const progress = document.getElementById(`progress${nama}`);
+    const teks = document.getElementById(`teksKuota${nama}`);
+    if (!progress || !teks) return;
+
+    const persen = info.kuota > 0 ? Math.min(100, Math.round((info.terisi / info.kuota) * 100)) : 0;
+    progress.style.width = persen + "%";
+    progress.className = "progress-bar " + (persen >= 100 ? "bg-danger" : persen >= 80 ? "bg-warning" : "bg-success");
+
+    if (info.kuota > 0 && info.terisi >= info.kuota) {
+        teks.innerHTML = `<span class="badge bg-danger">Kuota Penuh</span> (${info.terisi}/${info.kuota})`;
+    } else {
+        teks.textContent = `${info.terisi} / ${info.kuota} terisi`;
+    }
+}
+
+function aturOpsiKelasPenuh(idOpsi, info) {
+    const opsi = document.getElementById(idOpsi);
+    if (!opsi || !info) return;
+    const penuh = info.kuota > 0 && info.terisi >= info.kuota;
+    opsi.disabled = penuh;
+    if (penuh && !opsi.textContent.includes("(Kuota Penuh)")) {
+        opsi.textContent += " - Kuota Penuh";
+    }
 }
 
 /* ============ PERSYARATAN & RINCIAN BIAYA (PUBLIK) ============ */
@@ -117,17 +191,15 @@ function tampilkanInfoBiayaTerpilih() {
     if (!kelasSel || !gelombangSel || !infoBiaya) return;
 
     const kelas = kelasSel.value;
-    // Value gelombang di form ada keterangan bulan, mis. "Gelombang I (Januari-Maret)".
-    // Ambil kata intinya saja ("Gelombang I") supaya cocok dengan data admin.
-    const gelombangInti = (gelombangSel.value.split("(")[0] || "").trim();
+    const gelombang = gelombangSel.value;
 
-    if (!kelas || !gelombangInti) {
+    if (!kelas || !gelombang) {
         infoBiaya.classList.add("d-none");
         return;
     }
 
     const cocok = daftarBiayaCache.find(
-        (d) => d.kelas === kelas && (d.gelombang || "").trim() === gelombangInti
+        (d) => d.kelas === kelas && (d.gelombang || "").trim() === gelombang
     );
 
     if (!cocok) {
@@ -135,13 +207,15 @@ function tampilkanInfoBiayaTerpilih() {
         return;
     }
 
+    const gelombangLabel = gelombangSel.options[gelombangSel.selectedIndex]?.text || gelombang;
+
     let items = [];
     try { items = JSON.parse(cocok.item_json || "[]"); } catch (e) { items = []; }
     const itemsHtml = items
         .map((it) => `<div class="d-flex justify-content-between"><span>${it.nama}</span><span>${formatRupiah(it.nominal)}</span></div>`)
         .join("");
     infoBiaya.innerHTML = `
-        <div class="fw-bold mb-2"><i class="bi bi-info-circle-fill"></i> Rincian Biaya untuk ${kelas} - ${gelombangSel.value}</div>
+        <div class="fw-bold mb-2"><i class="bi bi-info-circle-fill"></i> Rincian Biaya untuk ${kelas} - ${gelombangLabel}</div>
         ${itemsHtml}
         <hr class="my-2">
         <div class="d-flex justify-content-between fw-bold">
@@ -155,13 +229,13 @@ function tampilkanInfoBiayaTerpilih() {
     if (hint) {
         const formulirItem = items.find((it) => /formulir/i.test(it.nama || ""));
         if (formulirItem) {
-            hint.innerHTML = `Silakan transfer <strong>minimal ${formatRupiah(formulirItem.nominal)}</strong> (Biaya Formulir untuk ${kelas} - ${gelombangSel.value}), lalu upload bukti transfer di sini (foto/scan, format JPG/PNG/PDF, maks. 5MB).`;
+            hint.innerHTML = `Silakan transfer <strong>minimal ${formatRupiah(formulirItem.nominal)}</strong> (Biaya Formulir untuk ${kelas} - ${gelombangLabel}), lalu upload bukti transfer di sini (foto/scan, format JPG/PNG/PDF, maks. 5MB).`;
         }
     }
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-    muatRekapKuota();
+    muatPengaturanPublik();
     muatInfoPersyaratan();
     muatInfoBiaya();
 
@@ -253,6 +327,17 @@ if (ppdbForm) {
         const statusEl = document.getElementById("ppdbStatus");
         const submitBtn = document.getElementById("ppdbSubmitBtn");
         const buktiInput = document.getElementById("buktiBayarInput");
+
+        if (pengaturanCache && pengaturanCache.status_ppdb !== "Buka") {
+            statusEl.innerHTML = '<div class="alert alert-danger mb-0">Mohon maaf, pendaftaran PPDB sedang ditutup.</div>';
+            return;
+        }
+        const kelasDipilih = document.getElementById("kelasPilihan")?.value;
+        const infoKelasDipilih = pengaturanCache && pengaturanCache.kelas && pengaturanCache.kelas[kelasDipilih];
+        if (infoKelasDipilih && infoKelasDipilih.kuota > 0 && infoKelasDipilih.terisi >= infoKelasDipilih.kuota) {
+            statusEl.innerHTML = `<div class="alert alert-danger mb-0">Mohon maaf, kuota kelas ${kelasDipilih} sudah penuh. Silakan pilih kelas lain.</div>`;
+            return;
+        }
 
         if (!buktiInput || !buktiInput.files || !buktiInput.files[0]) {
             statusEl.innerHTML = '<div class="alert alert-danger mb-0">Mohon upload bukti pembayaran terlebih dahulu.</div>';

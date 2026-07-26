@@ -59,7 +59,7 @@
 
                     <span class="me-4">
                         <i class="bi bi-telephone-fill"></i>
-                        +62895375689961
+                        +6283138735745
                     </span>
 
                     <span class="me-4">
@@ -531,49 +531,9 @@
 
                     </h2>
 
-                    <div class="list-group shadow">
+                    <div class="list-group shadow" id="pengumumanHomeContainer">
 
-                        <a href="pengumuman.html" class="list-group-item list-group-item-action">
-
-                            <i class="bi bi-calendar-event text-success me-2"></i>
-
-                            PPDB GELOMBANG 1
-
-                            <span class="float-end">
-
-                                Oktober - Desember 2026
-
-                            </span>
-
-                        </a>
-
-                        <a href="pengumuman.html" class="list-group-item list-group-item-action">
-
-                            <i class="bi bi-calendar-event text-success me-2"></i>
-
-                            PPDB GELOMBANG 2
-
-                            <span class="float-end">
-
-                                Januari - Maret 2027
-
-                            </span>
-
-                        </a>
-
-                        <a href="pengumuman.html" class="list-group-item list-group-item-action">
-
-                            <i class="bi bi-calendar-event text-success me-2"></i>
-
-                            PPDB GELOMBANG 3
-
-                            <span class="float-end">
-
-                                April - Juli 2027
-
-                            </span>
-
-                        </a>
+                        <div class="list-group-item text-muted">Memuat pengumuman...</div>
 
                     </div>
 
@@ -1256,7 +1216,7 @@
 
                                 <h6>Telepon</h6>
 
-                                <p>+62 895 3756 89961</p>
+                                <p>+62 831 3873 5745 (Nabila)</p>
 
                             </div>
 
@@ -1450,7 +1410,7 @@
 
                             <i class="bi bi-telephone-fill"></i>
 
-                            +62 895 3756 89961
+                            +62 831 3873 5745
 
                         </p>
 
@@ -1519,7 +1479,7 @@
     <!-- FLOATING WHATSAPP -->
     <!-- ===================== -->
 
-    <a href="https://wa.me/62895375689961?text=Assalamu'alaikum,%20saya%20ingin%20bertanya%20tentang%20PPDB%20MI%20Ulul%20Fikri."
+    <a href="https://wa.me/6283138735745?text=Assalamu'alaikum,%20saya%20ingin%20bertanya%20tentang%20PPDB%20MI%20Ulul%20Fikri."
         class="floating-wa" target="_blank" aria-label="Hubungi Kami via WhatsApp">
 
         <div class="wa-text">
@@ -1555,7 +1515,10 @@
     <script src="js/main.js"></script>
     <script src="js/content.js"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", () => muatBeritaPublik("beritaHomeContainer", 3));
+        document.addEventListener("DOMContentLoaded", () => {
+            muatBeritaPublik("beritaHomeContainer", 3);
+            muatPengumumanHome("pengumumanHomeContainer", 3);
+        });
     </script>
 
 </body>
