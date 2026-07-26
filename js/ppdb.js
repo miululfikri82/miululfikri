@@ -123,25 +123,42 @@ function muatInfoPersyaratan() {
         .then((res) => res.json())
         .then((data) => {
             if (!data.length) {
-                list.innerHTML = '<p class="text-muted mb-0">Belum ada data persyaratan.</p>';
+                list.innerHTML = '<div class="col-12 text-muted">Belum ada data persyaratan.</div>';
                 return;
             }
-            list.innerHTML = data
-                .map((d) => {
-                    const items = (d.daftar_item || "").split("\n").filter(Boolean);
-                    const itemsHtml = items.map((it) => `<li>${it}</li>`).join("");
+            // Kelompokkan berdasarkan jenis, lalu tampilkan tiap jenis jadi kolom sendiri
+            const kelompok = {};
+            data.forEach((d) => {
+                const jenis = d.jenis || "Persyaratan";
+                if (!kelompok[jenis]) kelompok[jenis] = [];
+                kelompok[jenis].push(d);
+            });
+            const namaJenis = Object.keys(kelompok);
+            const kolom = namaJenis.length === 1 ? "col-12" : "col-md-6";
+
+            list.innerHTML = namaJenis
+                .map((jenis) => {
+                    const isiKategori = kelompok[jenis]
+                        .map((d) => {
+                            const items = (d.daftar_item || "").split("\n").filter(Boolean);
+                            const itemsHtml = items.map((it) => `<li>${it}</li>`).join("");
+                            return `
+                            <h6 class="mb-1">${d.kategori}</h6>
+                            <ul class="mb-3 ps-3">${itemsHtml}</ul>
+                        `;
+                        })
+                        .join("");
                     return `
-                    <div class="mb-3">
-                        <span class="badge bg-success-subtle text-success mb-1">${d.jenis || "Persyaratan"}</span>
-                        <h6 class="mb-1">${d.kategori}</h6>
-                        <ul class="mb-0 ps-3">${itemsHtml}</ul>
+                    <div class="${kolom}">
+                        <span class="badge bg-success-subtle text-success mb-2">${jenis}</span>
+                        ${isiKategori}
                     </div>
                 `;
                 })
                 .join("");
         })
         .catch(() => {
-            list.innerHTML = '<p class="text-danger mb-0">Gagal memuat data persyaratan.</p>';
+            list.innerHTML = '<div class="col-12 text-danger">Gagal memuat data persyaratan.</div>';
         });
 }
 
@@ -153,21 +170,31 @@ function muatInfoBiaya() {
             daftarBiayaCache = data || [];
             if (list) {
                 if (!data.length) {
-                    list.innerHTML = '<p class="text-muted mb-0">Belum ada rincian biaya.</p>';
+                    list.innerHTML = '<div class="col-12 text-center text-muted">Belum ada rincian biaya.</div>';
                 } else {
+                    // Lebar kartu menyesuaikan jumlah paket: makin banyak paket, makin sempit tiap kartu
+                    const kolom = "col-12";
+
                     list.innerHTML = data
                         .map((d) => {
                             let items = [];
                             try { items = JSON.parse(d.item_json || "[]"); } catch (e) { items = []; }
                             const itemsHtml = items
-                                .map((it) => `<li class="d-flex justify-content-between"><span>${it.nama}</span><span>${formatRupiah(it.nominal)}</span></li>`)
+                                .map((it) => `
+                                    <div class="d-flex justify-content-between align-items-start py-2 border-bottom">
+                                        <span class="pe-2">${it.nama}</span>
+                                        <span class="text-nowrap fw-medium">${formatRupiah(it.nominal)}</span>
+                                    </div>
+                                `)
                                 .join("");
                             return `
-                            <div class="mb-3">
-                                <h6 class="mb-1">${d.kelas} - ${d.gelombang} ${d.periode ? `<small class="text-muted">(${d.periode})</small>` : ""}</h6>
-                                <ul class="list-unstyled mb-1 ps-1">${itemsHtml}</ul>
-                                <div class="fw-bold text-success">Total: ${formatRupiah(d.total)}</div>
-                                ${d.biaya_bulanan ? `<div class="text-muted">${d.biaya_bulanan}</div>` : ""}
+                            <div class="${kolom}">
+                                <div class="contact-card h-100">
+                                    <h6 class="fw-bold mb-2">${d.kelas} - ${d.gelombang} ${d.periode ? `<br><small class="text-muted fw-normal">${d.periode}</small>` : ""}</h6>
+                                    <div class="small mb-2">${itemsHtml}</div>
+                                    <div class="fw-bold text-success pt-1">Total: ${formatRupiah(d.total)}</div>
+                                    ${d.biaya_bulanan ? `<div class="text-muted small mt-1">${d.biaya_bulanan}</div>` : ""}
+                                </div>
                             </div>
                         `;
                         })
@@ -212,13 +239,17 @@ function tampilkanInfoBiayaTerpilih() {
     let items = [];
     try { items = JSON.parse(cocok.item_json || "[]"); } catch (e) { items = []; }
     const itemsHtml = items
-        .map((it) => `<div class="d-flex justify-content-between"><span>${it.nama}</span><span>${formatRupiah(it.nominal)}</span></div>`)
+        .map((it) => `
+            <div class="d-flex justify-content-between align-items-start py-2 border-bottom">
+                <span class="pe-2">${it.nama}</span>
+                <span class="text-nowrap fw-medium">${formatRupiah(it.nominal)}</span>
+            </div>
+        `)
         .join("");
     infoBiaya.innerHTML = `
         <div class="fw-bold mb-2"><i class="bi bi-info-circle-fill"></i> Rincian Biaya untuk ${kelas} - ${gelombangLabel}</div>
         ${itemsHtml}
-        <hr class="my-2">
-        <div class="d-flex justify-content-between fw-bold">
+        <div class="d-flex justify-content-between fw-bold mt-2">
             <span>Total Biaya Masuk</span><span>${formatRupiah(cocok.total)}</span>
         </div>
         ${cocok.biaya_bulanan ? `<div class="mt-1">${cocok.biaya_bulanan}</div>` : ""}

@@ -105,28 +105,26 @@
                 </div>
             </div>
 
-            <!-- ===== INFO PERSYARATAN & RINCIAN BIAYA (dimuat dinamis dari admin) ===== -->
+            <!-- ===== INFO PERSYARATAN (dimuat dinamis, dibagi 2 kolom per jenis) ===== -->
+            <div class="row justify-content-center mb-4">
+                <div class="col-lg-9">
+                    <div class="contact-card">
+                        <h5 class="fw-bold text-success mb-3"><i class="bi bi-clipboard-check-fill"></i>
+                            Persyaratan &amp; Perlengkapan</h5>
+                        <div id="persyaratanPublicList" class="row g-3">
+                            <div class="col-12 text-center text-muted">Memuat data persyaratan...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== RINCIAN BIAYA MASUK (dimuat dinamis, kartu sejajar per paket) ===== -->
             <div class="row justify-content-center mb-5">
                 <div class="col-lg-9">
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                            <div class="contact-card h-100">
-                                <h5 class="fw-bold text-success mb-3"><i class="bi bi-clipboard-check-fill"></i>
-                                    Persyaratan &amp; Perlengkapan</h5>
-                                <div id="persyaratanPublicList" class="small">
-                                    <p class="text-muted mb-0">Memuat data persyaratan...</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="contact-card h-100">
-                                <h5 class="fw-bold text-success mb-3"><i class="bi bi-cash-coin"></i>
-                                    Rincian Biaya Masuk</h5>
-                                <div id="biayaPublicList" class="small">
-                                    <p class="text-muted mb-0">Memuat rincian biaya...</p>
-                                </div>
-                            </div>
-                        </div>
+                    <h5 class="fw-bold text-success mb-3 text-center"><i class="bi bi-cash-coin"></i>
+                        Rincian Biaya Masuk</h5>
+                    <div id="biayaPublicList" class="row g-3">
+                        <div class="col-12 text-center text-muted">Memuat rincian biaya...</div>
                     </div>
                 </div>
             </div>
